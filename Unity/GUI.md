@@ -448,3 +448,18 @@ GUILayout.ExpandHeight(false);//禁止
 GUILayout.ExpandHeight(true);//允许
 GUILayout.ExpandHeight(false);//禁止
 ```
+***
+# 五. 补充
+***
+## 11. 编辑器模式下运行脚本
+特性: [ExecuteAlways]
+
+## 12. 九宫格
+九宫格就是把屏幕分成九个部分
+每一个部分都有一个相对UI屏幕原点的原点--通过屏幕宽和高计算出来的
+
+<center>
+
+![alt text](/Unity/图片/GUI/GUI10-02_20-11-59.jpg)
+
+</center>
