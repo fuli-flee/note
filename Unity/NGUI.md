@@ -318,3 +318,416 @@ list.onChange.Add(new EventDelegate(() => {
 }));
 ```
 
+
+***
+
+## 12. Slider
+
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-04_10-17-43.jpg)
+
+</center>
+
+### 12.1 制作Slider
+
+1. 3个sprite 1个做根对象为背景  2个子对象 1个进度 1个滑动块 
+2. 设置层级
+3. 为根背景添加Slider脚本
+4. 添加碰撞器（父对象或者滑块）
+5. 关联3个对象
+
+### 12.2 代码控制
+
+```CSharp
+
+
+slider.onChange.Add(new EventDelegate(() => {
+    print("通过代码监听" + slider.value);
+}));
+
+//这里是第一个学习NGUI控件以来直接用委托调用的
+slider.onDragFinished += () => {
+    print("拖曳结束" + slider.value);
+}; 
+```
+***
+
+## 13. Scrollbar和Progressbar
+
+1. ScrollBar滚动条, 一般不单独使用, 都是配合滚动视图使用
+
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-04_11-05-03.jpg)
+
+</center>
+
+2. ProgressBar进度条,  一般不咋使用, 一般直接用Sprite的Filed填充模式即可
+
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-04_11-05-35.jpg)
+
+</center>
+
+### 13.1 制作Scrollbar
+1. 两个Sprite 1个背景 1个滚动条
+2. 背景父对象添加脚本
+3. 添加碰撞器
+4. 关联对象
+
+
+### 13.2 制作Progressbar
+1. 两个Sprite 1个背景 1个进度条
+2. 背景父对象添加脚本
+3. 关联对象
+
+***
+## 14. ScrollView
+
+滚动视图
+
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-04_15-02-24.jpg)
+![alt text](/Unity/图片/NGUI/NGUI10-04_15-08-39.jpg)
+![alt text](/Unity/图片/NGUI/NGUI10-04_15-51-03.jpg)
+
+</center>
+
+### 14.1 制作ScrollView
+1. 直接工具栏创建即可 NGUI——Create——ScrollView
+2. 若需要ScrollBar 自行添加水平和竖直
+3. 添加子对象 为子对象添加Drag Scroll View和碰撞器
+添加了Drag Scroll View脚本后不用去手动关联对应的父对象ScrollView, 脚本会自动关联
+
+### 14.2 相关参数
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-04_15-10-52.jpg)
+![alt text](/Unity/图片/NGUI/NGUI10-04_15-17-17.jpg)
+
+</center>
+
+### 14.3 自动对齐脚本Grid 参数相关
+
+
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-04_15-53-34.jpg)
+![alt text](/Unity/图片/NGUI/NGUI10-04_15-54-22.jpg)
+
+</center>
+
+
+### 14.3 代码控制
+
+- 用Grid自动排序ScrollView里的单元格
+    NGUI 的 UIGrid 在 Start() 之后会自动执行一次 Reposition()
+    如果 ScrollView 中的单元格堆叠在一起, 想要用 Grid 重新排版
+```CSharp
+public UIScrollView sv;
+
+private void Start()
+{
+    for (int i = 0; i < 100; ++i)
+    {
+        GameObject cell = Instantiate(Resources.Load<GameObject>("Prefabs/Cell"));
+        cell.transform.SetParent(sv.transform, false);
+    }
+
+    //使用Grid自动排序, 需要挂载Grid脚本
+    sv.GetComponent<UIGrid>().Reposition();
+}
+```
+
+- 更推荐用数学计算的方式排版
+```CSharp
+private void Start()
+{
+    closeButton.onClick.Add(new EventDelegate(() => { HideMe(); }));
+
+    for (int i = 0; i < 100; ++i)
+    {
+        GameObject cell = Instantiate(Resources.Load<GameObject>("Prefabs/Cell"));
+        cell.transform.SetParent(sv.transform, false);
+        
+        //不用Grid组件
+        cell.transform.localPosition = new Vector3(120 * (i % 5), 120 * (i / 5), 0);
+    }
+}
+```
+为什么更推荐第二种去排版单元格, grid组件只能根据单元格的先后顺序来排版, 那问题来了, 如果我想让这个ScrollView以我自己定的规矩排版呢? 就比如根据等级和稀有度排版的结果都是不一样的,grid组件时做不到的
+
+- 用等级排序
+<center>
+
+![alt text](/Unity/图片/NGUI/example1.jpg)
+
+</center>
+
+- 用稀有度排序
+
+<center>
+
+![alt text](/Unity/图片/NGUI/example2.jpg)
+
+</center>
+
+***
+# 五. Anchor 锚点组件
+***
+## 15. Anchor
+
+### 15.1 概念
+是用于9宫格布局的锚点
+1. 老版本——锚点组件——用于控制对象对齐方式
+2. 新版本——3大基础控件自带 锚点内容——用于控制对象相对父对象布局
+
+### 15.2 老版本——锚点组件
+主要用于设置面板相对屏幕的9宫格位置
+用于控制对象对齐方式
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-04_20-40-50.jpg)
+![alt text](/Unity/图片/NGUI/NGUI10-04_20-41-25.jpg)
+
+</center>
+
+
+### 15.3 新版本——基础控件自带锚点信息
+用于控制对象相对父对象布局
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-04_21-02-15.jpg)
+![alt text](/Unity/图片/NGUI/NGUI10-04_20-49-58.jpg)
+
+</center>
+***
+
+## 16. EventListener和EventTrigger
+
+### 16.1 控件自带事件的局限性
+目前复合控件只提供了一些常用的事件监听方式
+比如, Button —— 点击, Toggle —— 值变化, 等等
+如果想要制作 按下 抬起 长按等功能 利用现在的知识是无法完成的
+
+### 16.2 NGUI事件 响应函数
+- 添加了碰撞器的对象
+- NGUI提供了一些利用反射调用的函数
+</br>
+
+- 经过 OnHover(bool isOver)
+- 按下 OnPress(bool pressed)
+- 点击 OnClick()
+- 双击 OnDoubleClick()
+- 拖曳开始 OnDragStart()
+- 拖曳中  OnDrag(Vector2 delta)
+- 拖曳结束 OnDragEnd()
+- 拖曳经过某对象 OnDragOver(GameObject go)
+- 拖曳离开某对象 OnDragOut(GameObject go)
+- 等等等等
+
+### 16.2 UIEventListener和UIEventTrigger
+他们帮助我们封装了所有 特殊响应函数, 可以通过它进行管理添加
+
+1. UIEventListener 适合代码添加
+
+```CSharp
+public UISprite A;
+
+UIEventListener listener = UIEventListener.Get(A.gameObject);
+listener.onPress += (obj, isPress) => {
+    print(obj.name + "被按下或者抬起了" + isPress);
+};
+```
+
+2. UIEventTrigger 适合Inspector面板 关联脚本添加
+
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-04_22-42-33.jpg)
+
+</center>
+
+3. UIEventListener和UIEventTrigger区别
+   - Listener更适合 代码添加监听 Trigger适合拖曳对象添加监听
+   - Listener传入的参数 更具体  Trigger就不会传入参数 我们需要在函数中去判断处理逻辑
+
+***
+# 六. NGUI进阶
+
+## 17. DrawCall
+
+### 17.1 概念
+CPU(处理器)准备好渲染数据（顶点，纹理，法线，Shader等等）后
+告知GPU(图形处理器-显卡)开始渲染（将命令放入命令缓冲区）的命令
+
+### 17.2 如何降低DrawCall数量
+在UI层面上, 打图集就是减少DrawCall次数的方法, 小图合大图——>即多个小DrawCall变一次大DrawCall
+
+后面会学习在模型上减少DrawCall
+
+### 17.3 制作UI时降低DrawCall的技巧
+1. 通过NGUI Panel上提供的DrawCall查看工具(Panel => Show Draw Calls)
+2. 注意不同图集之间的层级关系
+3. 注意Label的层级关系
+
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-05_12-12-28.jpg)
+
+</center>
+
+首先, 这里的层级关系是指Widget里的层级, 当多个UI的图片都是一个图集且这几个UI的层级的中间层级没有其他图集时,他们便会合并为一个DrawCall
+
+- 合并DrawCall
+    - 这三个sprite用的一个图集; A,B,C的层级分别为1,2,3; 所以只会有一个DrawCall
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-05_12-21-18.jpg)
+![alt text](/Unity/图片/NGUI/NGUI10-05_12-22-57.jpg)
+
+</center>
+
+- 中间层级为其他图集
+  - 此时我把B的图集改变了, DrawCall变成了3个, 其中第1个和第3个是一个图集
+
+    <center>
+
+    ![alt text](/Unity/图片/NGUI/NGUI10-05_12-26-13.jpg)
+    ![alt text](/Unity/图片/NGUI/NGUI10-05_12-26-40.jpg)
+
+    </center>
+
+  - 同理, 中间不是Sprite, 而是Label的话也会打断合并DrawCall
+
+    <center>
+
+    ![alt text](/Unity/图片/NGUI/NGUI10-05_12-29-13.jpg)
+    ![alt text](/Unity/图片/NGUI/NGUI10-05_12-31-21.jpg)
+
+    </center>
+
+*** 
+## 18. NGUI字体
+
+> NGUI => Open => Font Maker
+
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-05_16-15-44.jpg)
+
+</center>
+
+### 18.1 作用
+1. 降低DrawCall
+2. 自定义美术字体
+
+### 18.2 制作NGUI字体
+NGUI内部提供了字体制作工具
+ 1. 根据字体文件 生成指定内容文字 达到降低DrawCall的目的
+ 2. 使用第三方工具BitmapFont生成字体信息和图集
+   通过NGUI 字体工具使用第三方工具生成的内容制作字体
+   达到自定义美术字体
+
+### 18.3 Unity动态字体和NGUI字体如何选择
+1. 文字变化较多用Unity动态字体 变化较少用NGUI字体
+2. 想要减少DrawCall用NGUI字体 
+3. 美术字用NGUI字体
+
+***
+## 19. NGUI缓动
+> NGUI => Tween
+
+### 19.1 概念
+NGUI缓动 就是让控件交互时 进行缩放变化 透明变化 位置变化 角度变化等等行为
+NGUI自带Tween功能来实现这些缓动效果
+
+### 19.2 NGUI缓动的使用
+1. 关键组件 Tween缓动相关组件
+    此处以Tween中的Scale为例
+    (下图中的Animation Curve打错字了, 是"动画曲线" 不是"动画取消")
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-05_16-54-10.jpg)
+![alt text](/Unity/图片/NGUI/NGUI10-05_16-50-52.jpg)
+
+</center>
+
+2. 关键组件 Play Tween可以通过它让该对象和输入事件关联
+
+> NGUI => Attach => Play Tween Script
+
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-05_17-15-41.jpg)
+![alt text](/Unity/图片/NGUI/NGUI10-05_17-22-24.jpg)
+![alt text](/Unity/图片/NGUI/NGUI10-05_17-23-06.jpg)
+
+</center>
+
+## 20. 模型和粒子
+
+### 20.1 NGUI中显示3D模型
+- 方法一：
+使用UI摄像机渲染3D模型
+  1. 改变NGUI的整体层级 为 UI层
+  2. 改变主摄像机和NGUI摄像机的 渲染层级
+  3. 将想要被UI摄像机渲染的对象层级改为 UI层
+  4. 调整模型和UI控件的Z轴距离
+
+</br>
+
+- 方法二：
+    使用多摄像机渲染 Render Texture
+
+### 20.2 NGUI中显示粒子特效
+1. 让Panel和粒子特效处于一个排序层
+2. 在粒子特效的 Render参数中 设置自己的层级
+
+***
+# 七. 其他
+
+***
+## 21. NGUI 事件响应 播放音效
+`PlaySound 脚本`
+
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-05_19-15-31.jpg)
+
+</center>
+
+## 22. NGUI控件和键盘按键绑定
+`KeyBinding 脚本`
+
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-05_19-18-06.jpg)
+
+</center>
+
+## 23. PC端 tab键快捷切换选中
+`KeyNavigation 脚本`
+
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-05_19-21-49.jpg)
+
+</center>
+
+## 24. 语言本地化
+`Localization脚本`
+
+<center>
+
+![alt text](/Unity/图片/NGUI/NGUI10-05_19-18-06.jpg)
+
+</center>
+
+1. 在Resources下创建一个txt文件 命名必须为Localization
+2. 配置文件
+3. 给想要切换文字的Label对象下挂载Localize 关联Key
+4. 给用于切换语言的下拉列表下添加脚本LanguageSelection
