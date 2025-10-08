@@ -3,6 +3,8 @@
 ***
 # 一. 六大基础组件
 
+[参数不懂直接去看官方文档](https://docs.unity.cn/cn/2020.3/Manual/UICanvas.html)
+
 在创建UGUI相关对象时, 会自动创建另外两个对象: ==Canvas== 和 ==EventSystem==
 
 这两个对象是UGUI必不可少的, 其自动挂载的脚本便是六大基础组件:
@@ -453,6 +455,10 @@ Shadow
 Text txt = this.GetComponent<Text>();
 txt.text = "Niko is a cat";
 ```
+### 9.5 拓展
+不管是控件中的Label还是Text组件, 默认的字都很糊
+
+- 解决方法: 缩小RectTransform的同时放大Front size, 放大Front size要注意放大程度要在RectTransform范围内, 不然字会消失
 
 ## 10. RawImage
 RawImage是原始图像组件
@@ -542,8 +548,235 @@ public void ClickBtn()
 
 开关组件, 是UGUI中用于处理玩家单选框多选框相关交互的关键组件
 
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-08_09-39-06.jpg)
+
+</center>
+
 默认是多选框, 可以通过配合ToggleGroup组件制作为单选框
 
 默认创建的Toggle由4个对象组成
 - 父对象——Toggle组件依附
 - 子对象——背景图（必备）、选中图（必备）、说明文字（可选）
+
+### 12.1 相关参数
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-08_09-37-58.jpg)
+
+</center>
+
+### 12.2 代码控制
+```CSharp
+Toggle tog = this.GetComponent<Toggle>();
+```
+
+- 得到激活的Toggle
+```CSharp
+ToggleGroup togGroup = this.GetComponent<ToggleGroup>();
+
+//可以遍历提供的迭代器 得到当前处于选中状态的 Toggle
+foreach (Toggle item in togGroup.ActiveToggles())
+{
+    print(item.name + " " + item.isOn);
+}
+```
+
+### 12.3 监听事件
+```CSharp
+tog.onValueChanged.AddListener(ChangeValue);
+tog.onValueChanged.AddListener((b) =>
+{
+    print("代码监听 状态改变" + b);
+});
+
+private void ChangeValue(bool v)
+{
+    print("代码监听 状态改变" + v);
+}
+```
+
+## 13. InputField
+输入字段组件, 是UGUI中用于处理玩家文本输入相关交互的关键组件
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-08_10-47-22.jpg)
+![alt text](/Unity/图片/UGUI/UGUI10-08_10-48-05.jpg)
+
+</center>
+
+默认创建的InputField由3个对象组成
+- 父对象——InputField组件依附对象 以及 同时在其上挂载了一个Image作为背景图
+- 子对象——文本显示组件（必备）、默认显示文本组件（必备）
+
+### 13.1 相关参数
+- TextComponent: 用于关联显示输入内容的文本组件
+- Text: 输入框的起始默认值
+- Character Limit: 可以输入字符长度的最大值
+- Content Type: 输入的字符类型限制
+  - Standard: 标准模式;可以输入任何字符
+    - Autocorrected: 自动更正模式;跟踪未知单词,向用户建议合适的替换候选词
+    - IntegerNumber: 整数模式;用户只能输入整数
+    - Decimal Number: 十进制数模式;用于只能输入数组包括小数
+    - Alphanumeric: 字母数字模式;只能输入字母和数字
+    - Name: 名字模式;自动将每个单子首字母大写
+    - Email Address: 邮箱地址模式;允许最多输入一个@符号组成的字符和数字字符串
+    - Password: 密码模式;用星号隐藏输入的字符,允许使用符号
+    - Pin: 别针模式;用星号隐藏输入的字符,只允许输入整数
+    - Custom: 自定义模式;允许自定义行类型,输入类型,键盘类型和字符验证 
+- LineType: 行类型,定义文本格式
+    - Single Line: 只允许单行显示
+    - Multi Line Submit: 允许使用多行,仅在需要时使用新的一行
+    - Multi Line NewLine: 允许使用多行,用户可以按回车键空行
+- Placeholder: 关联用于显示初始内容文本控件
+- Caret Blink Rate: 光标闪烁速率
+- Caret Width: 光标宽
+- CustomCaret Color: 自定义光标颜色
+- Selection Color: 批量选中的背景颜色
+- HideMobile Input: 隐藏移动设备屏幕上键盘,仅适用于IOS
+- Read Only: 只读,不能改
+- Character.Limit: 可以输入字符长度的最大值
+
+### 13.2 代码控制
+```CSharp
+InputField input = this.GetComponent<InputField>();
+input.text = "123123123123";
+```
+
+### 13.3 监听事件
+```CSharp
+input.onValueChanged.AddListener((str) =>
+{
+    print("代码监听 改变" + str);
+});
+
+input.onEndEdit.AddListener((str) =>
+{
+    print("代码监听 结束输入" + str);
+});
+```
+==注意==:
+- Unity 从 2020.1 版本开始新增了 ==InputField.onSubmit== 事件 
+- 它和 InputField.onEndEdit 的区别在于:
+  - InputField.onEndEdit（结束编辑）
+    - 触发时机：当输入框失去焦点时触发（无论输入内容是否变化）。
+  - InputField.onSubmit（提交输入）
+    - 触发时机：当用户主动提交输入内容时触发。
+
+## 14. Slider
+滑动条组件, 是UGUI中用于处理滑动条相关交互的关键组件
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-08_18-38-13.jpg)
+
+</center>
+
+默认创建的Slider由4组对象组成
+- 父对象——Slider组件依附的对象
+- 子对象——背景图、进度图、滑动块三组对象
+### 14.1相关参数
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-08_18-40-32.jpg)
+
+</center>
+
+### 14.2 代码控制
+```CSharp
+Slider s = this.GetComponent<Slider>();
+print(s.value);
+```
+
+### 14.3 监听事件
+```CSharp
+s.onValueChanged.AddListener((v) =>
+{
+    print("代码添加的监听" + v);
+});
+```
+
+## 15. Scrollbar
+滚动条组件, 是UGUI中用于处理滚动条相关交互的关键组件
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-08_19-19-40.jpg)
+
+</center>
+
+默认创建的Scrollbar由2组对象组成
+- 父对象——Scrollbar组件依附的对象
+- 子对象——滚动块对象
+
+一般情况下我们不会单独使用滚动条, 都是配合ScrollView滚动视图来使用
+
+### 15.1 相关参数
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-08_19-28-16.jpg)
+
+</center>
+
+### 15.2 代码控制
+```CSharp
+Scrollbar sb = this.GetComponent<Scrollbar>();
+print(sb.value);
+print(sb.size);
+```
+
+### 15.3 监听事件
+```CSharp
+sb.onValueChanged.AddListener((v) => {
+    print("代码监听的函数" + v);
+});
+```
+
+
+## 16. ScrollView
+滚动视图组件, 是UGUI中用于处理滚动视图相关交互的关键组件
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-08_20-11-03.jpg)
+
+</center>
+
+默认创建的ScrollRect由4组对象组成
+- 父对象——ScrollRect组件依附的对象 还有一个Image组件 最为背景图
+- 子对象
+    - Viewport控制滚动视图可视范围和内容显示
+    - Scrollbar Horizontal 水平滚动条
+    - Scrollbar Vertical 垂直滚动条
+
+### 16.1 相关参数
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-08_20-13-52.jpg)
+
+</center>
+
+### 16.2 代码控制 
+
+```CSharp
+ScrollRect sr = this.GetComponent<ScrollRect>();
+
+//设置位置的两种方法(常用第二种):
+//改变内容的大小 具体可以拖动多少 都是根据它的尺寸来的
+sr.content.sizeDelta = new Vector2(200, 200);
+
+sr.normalizedPosition = new Vector2(0, 0.5f);
+```
+
+### 16.3 监听事件
+```CSharp
+sr.onValueChanged.AddListener((vec) =>
+{
+    print(vec);
+});
+```
