@@ -617,15 +617,15 @@ private void ChangeValue(bool v)
 - Character Limit: 可以输入字符长度的最大值
 - Content Type: 输入的字符类型限制
   - Standard: 标准模式;可以输入任何字符
-    - Autocorrected: 自动更正模式;跟踪未知单词,向用户建议合适的替换候选词
-    - IntegerNumber: 整数模式;用户只能输入整数
-    - Decimal Number: 十进制数模式;用于只能输入数组包括小数
-    - Alphanumeric: 字母数字模式;只能输入字母和数字
-    - Name: 名字模式;自动将每个单子首字母大写
-    - Email Address: 邮箱地址模式;允许最多输入一个@符号组成的字符和数字字符串
-    - Password: 密码模式;用星号隐藏输入的字符,允许使用符号
-    - Pin: 别针模式;用星号隐藏输入的字符,只允许输入整数
-    - Custom: 自定义模式;允许自定义行类型,输入类型,键盘类型和字符验证 
+  - Autocorrected: 自动更正模式;跟踪未知单词,向用户建议合适的替换候选词
+  - IntegerNumber: 整数模式;用户只能输入整数
+  - Decimal Number: 十进制数模式;用于只能输入数组包括小数
+  - Alphanumeric: 字母数字模式;只能输入字母和数字
+  - Name: 名字模式;自动将每个单子首字母大写
+  - Email Address: 邮箱地址模式;允许最多输入一个@符号组成的字符和数字字符串
+  - Password: 密码模式;用星号隐藏输入的字符,允许使用符号
+  - Pin: 别针模式;用星号隐藏输入的字符,只允许输入整数
+  - Custom: 自定义模式;允许自定义行类型,输入类型,键盘类型和字符验证 
 - LineType: 行类型,定义文本格式
     - Single Line: 只允许单行显示
     - Multi Line Submit: 允许使用多行,仅在需要时使用新的一行
@@ -780,3 +780,522 @@ sr.onValueChanged.AddListener((vec) =>
     print(vec);
 });
 ```
+## 17. DropDown
+
+下拉列表（下拉选单）组件, 是UGUI中用于处理下拉列表相关交互的关键组件
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-09_08-40-58.jpg)
+
+</center>
+
+默认创建的DropDown由4组对象组成
+- 父对象
+  - DropDown组件依附的对象 还有一个Image组件 作为背景图
+
+- 子对象
+    - Label是当前选项描述
+    - Arrow右侧小箭头
+    - Template下拉列表选单
+
+### 17.1 相关参数
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-09_08-48-02.jpg)
+
+</center>
+
+### 17.2 代码控制
+```CSharp
+Dropdown dd = this.GetComponent<Dropdown>();
+
+print(dd.value);
+
+print(dd.options[dd.value].text);
+
+dd.options.Add(new Dropdown.OptionData("123123123"));
+```
+
+### 17.3 监听事件
+
+```CSharp
+dd.onValueChanged.AddListener((index) => {
+    print(index);
+});
+```
+***
+
+# 四. 图集
+UGUI和NGUI使用上最大的不同是 NGUI使用前就要打图集, UGUI可以再之后再打图集
+打图集的目的就是减少DrawCall 提高性能
+
+UGUI中渲染顺序与Hierarchy窗口的排列顺序有关, 排序越靠前越后渲染(这句话也有歧义, 你理解为 "排序越靠后越后渲染" 也行, 理解的方向不同罢了, 反正看下面的例子就懂了)
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-09_10-14-19.jpg)
+![alt text](/Unity/图片/UGUI/UGUI10-09_10-13-46.jpg)
+
+</center>
+
+## 18. 图集制作
+
+### 18.1 在Unity中打开自带的打图集功能
+> Edit => Project Setting => Editor => Sprite Packer
+> (精灵包装器，可以通过Unity自带图集工具生成图集)
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-09_09-38-09.jpg)
+
+</center>
+
+- Disabled：默认设置，不会打包图集
+- Enabled For Build：Unity进在构建时打包图集，在编辑器模式下不会打包
+- Always Enabled：Unity在构建时打包图集，在编辑模式下运行前会打包图集
+</br>
+
+==注意: 以下这个参数只在unity2020以下版本才会有, 在2020版本后Legacy Sprite Packer被移除, 切换到了 Sprite Atlas V1==
+- Padding Power:选择打包算法在计算打包的精灵之间以及精灵与生成的图集边缘之间的间隔距离, 这里的数字代表2的n次方
+
+### 18.2 相关参数
+==注意: 第一种创建方式为unity2020版本以下创建精灵图集的方法, 第二种为2021及以上的方法==
+> 右键 => Create => Sprite Atlas
+> 右键 => Create => 2D => Sprite Atlas
+
+//TODO: 这里的参数讲解暂存, 因为unity核心还没写完, 到时候再来补充
+
+### 18.3 DrawCall
+> Game窗口 => Stats
+
+这里先将Batches认为是DrawCall
+没打图集前的DrawCall是5, 打完图集后为3
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-09_10-24-19.jpg)
+![alt text](/Unity/图片/UGUI/UGUI10-09_10-26-42.jpg)
+
+</center>
+
+- Text和Image组件也占一个DrawCall
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-09_10-30-08.jpg)
+![alt text](/Unity/图片/UGUI/UGUI10-09_10-28-57.jpg)
+
+</center>
+
+- 当Text处于一个图集的两个精灵图片之间时会打断图集的合并, 增加一次DrawCall
+
+- 下面是三张截图, 不是5张
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-09_10-33-03.jpg)
+
+![alt text](/Unity/图片/UGUI/UGUI10-09_10-32-36.jpg)
+
+![alt text](/Unity/图片/UGUI/UGUI10-09_10-34-10.jpg)
+
+</center>
+
+### 18.4 代码加载
+```CSharp
+using UnityEngine.U2D;
+
+//加载图集
+SpriteAtlas sa = Resources.Load<SpriteAtlas>("MyAlas");
+//从图集中加载指定名字的小图
+sa.GetSprite("bk");
+```
+# 五. UI事件监听接口
+目前所有的控件都只提供了常用的事件监听列表
+如果想做一些类似长按，双击，拖拽等功能是无法制作的
+或者想让Image和Text，RawImage三大基础控件能够响应玩家输入也是无法制作的
+
+而事件接口就是用来处理类似问题
+让所有控件都能够添加更多的事件监听来处理对应的逻辑
+## 19. 事件接口
+
+### 19.1 常用事件接口
+- IPointerEnterHandler - OnPointerEnter - 当指针进入对象时调用 （鼠标进入）
+- IPointerExitHandler - OnPointerExit - 当指针退出对象时调用 （鼠标离开）
+- IPointerDownHandler - OnPointerDown - 在对象上按下指针时调用 （按下）
+- IPointerUpHandler - OnPointerUp - 松开指针时调用（在指针正在点击的游戏对象上调用）（抬起）
+- IPointerClickHandler - OnPointerClick - 在同一对象上按下再松开指针时调用 （点击）
+</br>
+
+
+- IBeginDragHandler - OnBeginDrag - 即将开始拖动时在拖动对象上调用 （开始拖拽）
+- IDragHandler - OnDrag - 发生拖动时在拖动对象上调用 （拖拽中）
+- IEndDragHandler - OnEndDrag - 拖动完成时在拖动对象上调用 （结束拖拽）
+
+### 19.2 不常用事件接口
+- IInitializePotentialDragHandler - OnInitializePotentialDrag - 在找到拖动目标时调用，可用于初始化值
+- IDropHandler - OnDrop - 在拖动目标对象上调用
+- IScrollHandler - OnScroll - 当鼠标滚轮滚动时调用
+- IUpdateSelectedHandler - OnUpdateSelected - 每次勾选时在选定对象上调用
+</br>
+
+- ISelectHandler - OnSelect - 当对象成为选定对象时调用
+- IDeselectHandler - OnDeselect - 取消选择选定对象时调用
+</br>
+
+- 导航相关
+  - IMoveHandler - OnMove - 发生移动事件（上、下、左、右等）时调用
+  - ISubmitHandler - OnSubmit - 按下 Submit 按钮时调用
+  - ICancelHandler - OnCancel - 按下 Cancel 按钮时调用
+
+### 19.3 使用事件接口
+1. 继承MonoBehavior的脚本继承对应的事件接口，引用命名空间
+```CSharp
+using UnityEngine.EventSystems;
+```
+
+2. 实现接口中的内容
+3. 将该脚本挂载到想要监听自定义事件的UI控件上
+
+### 19.4 PointerEventData参数的关键内容
+- 父类：BaseEventData
+
+    - pointerId： 鼠标左右中键点击鼠标的ID 通过它可以判断右键点击
+    - position：当前指针位置（屏幕坐标系）
+    - pressPosition：按下的时候指针的位置
+    - delta：指针移动增量
+    - clickCount：连击次数
+    - clickTime：点击时间
+    </br>
+
+    - pressEventCamera：最后一个OnPointerPress按下事件关联的摄像机
+    - enterEvetnCamera：最后一个OnPointerEnter进入事件关联的摄像机
+
+***
+# 六. 事件触发器
+
+## 20. EventTrigger
+事件触发器是EventTrigger组件, 它是一个集成了所有事件接口的脚本
+它可以让我们更方便的为控件添加事件监听
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-10_08-43-11.jpg)
+
+</center>
+
+### 20.1 使用
+上面都没讲过拖脚本的方式来监听事件, 这里讲一下, 该方法适用于所有组合控件
+
+1. 拖脚本
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-10_08-54-14.jpg)
+
+</center>
+
+```CSharp
+public class Test : MonoBehaviour
+{
+    public void TestPointEnter(BaseEventData data)
+    {
+        //通过里氏替换原则就能使用该类的数据了, 比如eventData.position
+        PointerEventData eventData = data as PointerEventData;
+
+        print("鼠标进入");
+    }
+}
+```
+将要处理的逻辑挂载到Canvas下, 在Image下挂载EventTrigger组件, 然后让EventTrigger组件关联相应逻辑就行了
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-10_08-58-08.jpg)
+
+</center>
+
+2. 代码控制 
+
+```CSharp
+public EventTrigger et;
+
+void Start()
+{
+    //声明一个希望监听的事件对象
+    EventTrigger.Entry entry = new EventTrigger.Entry();
+    //声明 事件的类型
+    entry.eventID = EventTriggerType.PointUp;
+    //监听函数关联
+    entry.callback.AddListener((data) =>
+    {
+        print("抬起");
+    });
+    //把声明好的 事件对象 加入到 EventTrigger当中
+    et.triggers.Add(entry);
+}
+```
+
+类中类Entry的源码
+```CSharp
+public class Entry
+{
+    public EventTriggerType eventID = EventTriggerType.PointerClick;
+    public TriggerEvent callback = new TriggerEvent();
+}
+```
+***
+# 七. 屏幕坐标转UI相对坐标
+
+## 21. RectTransformUtility类
+RectTransformUtility 公共类是一个RectTransform的辅助类
+主要用于进行一些 坐标的转换等等操作
+其中对于我们目前来说 最重要的函数是 将屏幕空间上的点，转换成UI本地坐标下的点
+
+### 21.1 将屏幕坐标转换为UI本地坐标系下的点
+方法：
+```CSharp
+public RectTransform parent;
+
+public void OnDrag(PointerEventData eventData)
+{
+    //参数一：相对父对象
+    //参数二：屏幕点
+    //参数三：摄像机
+    //参数四：最终得到的点
+    //一般配合拖拽事件使用
+    Vector2 nowPos;
+    RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                parent,
+                eventData.position,
+                eventData.enterEventCamera,
+                out nowPos );
+
+    this.transform.localPosition = nowPos;
+
+    //this.transform.position += new Vector3(eventData.delta.x, eventData.delta.y, 0);
+}
+
+```
+***
+# 八. 遮罩
+在不改变图片的情况下
+让图片在游戏中只显示其中的一部分
+## 22. Mask
+通过在父对象上添加Mask组件即可遮罩其子对象
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-10_11-10-02.jpg)
+
+</center>
+
+注意：
+1. 想要被遮罩的Image需要勾选Maskable
+2. 只要父对象添加了Mask组件，那么所有的UI子对象都会被遮罩
+3. 遮罩父对象图片的制作，不透明的地方显示，透明的地方被遮罩
+
+***
+# 九. 模型和粒子显示在UI之前
+
+## 23. 模型显示在UI之前
+
+### 23.1直接用摄像机渲染3D物体
+- Canvas的渲染模式需为覆盖模式以外的模式
+- 摄像机模式 和 世界(3D)模式 都可以让模型显示在UI之前（Z轴在UI元素之前即可）
+
+- 注意：
+    1. 摄像机模式时建议用专门的摄像机渲染UI相关
+    2. 面板上的3D物体建议也用UI摄像机进行渲染
+
+### 23.2 将3D物体渲染在图片上，通过图片显示
+- 专门使用一个摄像机渲染3D模型，将其渲染内容输出到Render Texture上
+- 类似小地图的制作方式
+- 再将渲染的图显示在UI上
+
+- 该方式 不管Canvas的渲染模式是哪种都可以使用
+
+## 24.  粒子特效显示在UI之前
+
+- 粒子特效的显示和3D物体类似
+
+- 注意点：
+  - 在摄像机模式下时, 可以在粒子组件的Renderer相关参数中改变排序层 让粒子特效始终显示在其之前不受Z轴影响
+***
+# 十. 异形按钮
+图片形状不是传统矩形的按钮
+
+## 25. 如何让异形按钮能够准确点击
+
+### 25.1 通过添加子对象的形式
+按钮之所以能够响应点击，主要是根据图片矩形范围进行判断的
+它的范围判断是自下而上的，意思是如果有子对象图片，子对象图片的范围也会算为可点击范围
+那么我们就可以用多个透明图拼凑不规则图形作为按钮子对象用于进行射线检测
+
+### 25.2 通过代码改变图片的透明度响应阈值
+第一步：修改图片参数 开启 `Read/Write Enabled` 开关
+第二步：通过代码修改图片的响应阈值
+
+该参数含义：指定一个像素必须具有的最小alpha值，以变能够认为射线命中了图片
+说人话：当像素点alpha值小于了 该值 就不会被射线检测了
+```CSharp
+public Image img;
+void Start()
+{
+    img.alphaHitTestMinimumThreshold = 0.1f;
+}
+```
+
+*** 
+# 十一. 自动布局组件
+
+## 26. 自动布局
+自动布局的工作方式一般是
+自动布局控制组件 + 布局元素 = 自动布局
+
+自动布局控制组件：Unity提供了很多用于自动布局的管理性质的组件用于布局
+布局元素：具备布局属性的对象们，这里主要是指具备RectTransform的UI组件
+
+### 26.1 布局元素的布局属性
+要参与自动布局的布局元素必须包含布局属性, 在Inspector窗口的最下面
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-10_20-51-53.jpg)
+![alt text](/Unity/图片/UGUI/UGUI10-10_20-53-42.jpg)
+
+</center>
+
+布局属性主要有以下几条
+- inmum width：该布局元素应具有的最小宽度
+- Minmum height：该布局元素应具有的最小高度
+</br>
+
+- Preferred width：在分配额外可用宽度之前，此布局元素应具有的宽度
+- Preferred height：在分配额外可用高度之前，此布局元素应具有的高度。
+</br>
+
+- Flexible width：此布局元素应相对于其同级而填充的额外可用宽度的相对量
+- Flexible height：此布局元素应相对于其同级而填充的额外可用高度的相对量
+</br>
+
+在进行自动布局时 都会通过计算布局元素中的这6个属性得到控件的大小位置
+
+在布局时，布局元素大小设置的基本规则是
+1. 首先分配最小大小Minmum width和Minmum height
+2. 如果父类容器中有足够的可用空间，则分配Preferred width和Preferred height
+3. 如果上面两条分配完成后还有额外空间，则分配Flexible width和Flexible height
+
+一般情况下布局元素的这些属性都是0
+但是特定的UI组件依附的对象布局属性会被改变，比如Image和Text
+
+一般情况下我们不会去手动修改他们，但是如果你有这些需求
+可以手动添加一个LayoutElement组件 可以修改这些布局属性
+
+### 26.2 水平垂直布局组件
+水平垂直布局组件
+将子对象并排或者竖直的放在一起
+
+组件名：`Horizontal Layout Group` 和 `Vertical Layout Group`
+可以配合子类中的`Layout Element`一起使用
+
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-10_21-00-27.jpg)
+![alt text](/Unity/图片/UGUI/UGUI10-10_21-09-48.jpg)
+
+</center>
+
+参数相关：
+- Padding：左右上下边缘偏移位置
+- Spacing:子对象之间的间距
+</br>
+- ChildAlignment:九宫格对其方式
+- Control Child Size：是否控制子对象的宽高
+- Use Child Scale：在设置子对象大小和布局时，是否考虑子对象的缩放
+- Child Force Expand：是否强制子对象拓展以填充额外可用空间
+
+### 26.3 网格布局组件
+网格布局组件
+将子对象当成一个个的格子设置他们的大小和位置
+
+组件名：`Grid Layout Group`
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-10_21-16-27.jpg)
+
+</center>
+
+参数相关：
+- Padding：左右上下边缘偏移位置
+- Cell Size：每个格子的大小
+- Spacing：格子间隔
+- Start Corner:第一个元素所在位置（4个角）
+- Start Axis：沿哪个轴放置元素；Horizontal水平放置满换行，Vertical竖直放置满换列
+- Child Alignment：格子对其方式（9宫格）
+- Constraint：行列约束
+  - Flexible：灵活模式，根据容器大小自动适应
+  - Fixed Column Count：固定列数
+  - Fixed Row Count：固定行数
+
+### 26.4 内容大小适配器
+内容大小适配器
+它可以自动的调整RectTransform的长宽来让组件自动设置大小
+一般在Text上使用 或者 配合其它布局组件一起使用
+
+组件名：`Content Size Fitter`
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-10_21-21-36.jpg)
+
+</center>
+
+参数相关
+- Horizontal Fit：如何控制宽度
+- Vertical Fit:如何控制高度
+
+Unconstrained：不根据布局元素伸展
+Min Size：根据布局元素的最小宽高度来伸展
+Preferred Size：根据布局元素的偏好宽度来伸展宽度。
+
+### 26.5 宽高比适配器
+宽高比适配器
+1. 让布局元素按照一定比例来调整自己的大小
+2. 使布局元素在父对象内部根据父对象大小进行适配
+
+组件名：`Aspect Ratio Fitter`
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-10_21-29-01.jpg)
+
+</center>
+
+参数相关：
+- Aspect Mode：适配模式，如果调整矩形大小来实施宽高比
+  - None：不让矩形适应宽高比
+  - Width Controls Height：根据宽度自动调整高度
+  - Height Controls Width：根据高度自动调整宽度
+  - Fit In Parent：自动调整宽度、高度、位置和锚点，使矩形适应父项的矩形，同时保持宽高比，会出现“黑边”
+  - Envelope Parent：自动调整宽度、高度、位置和锚点，使矩形覆盖父项的整个区域，同时保持宽高比，会出现“裁剪”
+- Aspect Ratio：宽高比；宽除以高的比值
+
+***
+# 十二. 画布组
+
+## 27. Canvas Group
+如果我们想要整体控制一个面板的淡入淡出 或者 整体禁用
+使用目前学习的知识点 是无法方便快捷的设置的
+为面板父对象添加 `CanvasGroup` 组件 即可整体控制
+
+组件：`Canvas Group`
+<center>
+
+![alt text](/Unity/图片/UGUI/UGUI10-10_22-11-07.jpg)
+
+</center>
+
+参数相关：
+- Alpha：整体透明度控制
+- Interactable:整体启用禁用设置
+- Blocks Raycasts：整体射线检测设置
+- Ignore Parent Groups：是否忽略父级CanvasGroup的作用 
