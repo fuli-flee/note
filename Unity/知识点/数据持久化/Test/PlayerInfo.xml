@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<PlayerInfo>
+    <name>fuli</name>
+    <atk>33</atk>
+    <def>44</def>
+    <moveSpeed>55</moveSpeed>
+    <roundSpeed>20</roundSpeed>
+    <weapon>
+        <id>1</id>
+        <num>10</num>
+    </weapon>
+    <listInt>
+        <int>1</int>
+        <int>2</int>
+        <int>3</int>
+        <int>4</int>
+        <int>5</int>
+    </listInt>
+    <itemList>
+        <Item id="2" num="20"/>
+        <Item id="3" num="30"/>
+        <Item id="4" num="40"/>
+    </itemList>
+    <itemDic>
+        <int>1</int>
+        <Item id="5" num="50"/>
+        <int>2</int>
+        <Item id="6" num="60"/>
+    </itemDic>
+</PlayerInfo>

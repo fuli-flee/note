@@ -153,3 +153,6 @@ void Start()
 }
 
 ```
+
+## 4.3 导出资源包
+> Project窗口 => 右键 => Export Package..
