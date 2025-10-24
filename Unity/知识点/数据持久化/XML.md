@@ -618,3 +618,60 @@ public void WriteXml(XmlWriter writer)
     writer.WriteEndElement();
 }
 ```
+
+***
+# 十. 让Dictionary支持xml序列和反序列化
+1. 我们没办法修改C#自带的类
+2. 那我们可以重写一个类 继承Dictionary 然后让这个类继承序列化拓展接口IXmlSerializable
+3. 实现里面的序列化和反序列化方法即可
+
+## 10.1 具体实现
+[具体的可以直接导入我写好的](/Unity/小项目/数据持久化/XML/XML_SerizlizerDictionary.unitypackage)
+
+下面是源码
+
+```CSharp
+using System.Collections.Generic;
+using System.Xml;
+using System.Xml.Schema;
+using System.Xml.Serialization;
+
+public class SerizlizerDictionary<TKey, TValue> : Dictionary<TKey, TValue> ,IXmlSerializable
+{
+    public XmlSchema GetSchema()
+    {
+        return null;
+    }
+
+    public void ReadXml(XmlReader reader)
+    {
+        reader.Read();
+        
+        XmlSerializer keyReader = new XmlSerializer(typeof(TKey));
+        XmlSerializer valueReader = new XmlSerializer(typeof(TValue));
+
+        TKey key;
+        TValue value;
+        
+        while (reader.NodeType != XmlNodeType.EndElement)
+        {
+            key = (TKey)keyReader.Deserialize(reader);
+            value = (TValue)valueReader.Deserialize(reader);
+            
+            this.Add(key,value);
+        }
+    }
+
+    public void WriteXml(XmlWriter writer)
+    {
+        XmlSerializer keySer = new XmlSerializer(typeof(TKey));
+        XmlSerializer valueSer = new XmlSerializer(typeof(TValue));
+
+        foreach (var kv in this)
+        {
+            keySer.Serialize(writer,kv.Key);
+            valueSer.Serialize(writer,kv.Value);
+        }
+    }
+}
+```
