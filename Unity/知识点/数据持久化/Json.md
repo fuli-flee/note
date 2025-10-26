@@ -162,6 +162,8 @@ ExampleInfoList exampleInfoList = JsonUtility.FromJson<ExampleInfoList>(jsonStr)
 
 ***
 # 四. LitJson
+[下载地址](https://github.com/LitJSON/litjson)
+
 它是一个第三方库，用于处理Json的序列化和反序列化
 LitJson是C#编写的，体积小、速度快、易于使用
 它可以很容易的嵌入到我们的代码中
@@ -171,37 +173,120 @@ LitJson是C#编写的，体积小、速度快、易于使用
 方法：`JsonMapper.ToJson(对象)`
 
 ```CSharp
+Test2 t = new Test2();
 
+string path = Application.persistentDataPath + "/example2.json";
+string jsonStr = JsonMapper.ToJson(t);
+File.WriteAllText(path,jsonStr);
 ```
 
+转换出的json文件中字符串会变成以下这样, 这是正常的, 目前我只看到了中文字符串会变成这样
+>"name":"\u5C0F\u660E"
 
 注意 ：
-1. 相对JsonUtlity不需要加特性
-2. 不能序列化私有变量
-3. 支持字典类型,字典的键 建议都是字符串 因为 Json的特点 Json中的键会加上双引号
+1. 相对JsonUtlity**不需要加特性**
+2. **不能序列化私有变量**
+3. **支持字典类型**,字典的键 建议都是字符串 因为 Json的特点 Json中的键会加上双引号
 4. 需要引用LitJson命名空间
-5. LitJson可以准确的保存null类型
+5. LitJson可以准确的**保存null类型**
 
 ## 4.2 使用LitJson反序列化
 方法：`JsonMapper.ToObject(字符串)`
 
 ```CSharp
+string jsonStr = File.ReadAllText(path);
+//方法一: 返回一个JsonData, 该类本质上是键值对, 所以可以通过索引去读取值
+JsonData data = JsonMapper.ToObject(jsonStr);
+print(data["name"]);
 
+//方法二: 通过泛型转换, 更加方便
+Test2 t2 = JsonMapper.ToObject<Test2>(jsonStr);
 ```
 
 注意 ：
-1. 类结构需要无参构造函数，否则反序列化时报错
-2. 字典虽然支持 但是键在使用为数值时会有问题 需要使用字符串类型
+1. 类结构需要**无参构造函数**，否则反序列化时报错
+    就比如我的Test2和Student类是这样的
+    ```CSharp
+    public class Test2
+    {
+        //这两个字典用于讲下面的第二点
+        public Dictionary<int, string> dic;
+        public Dictionary<string, string> dic2;
+
+        public Student2 s1;
+    }
+
+    public class Student2
+    {
+        public int age;
+        public string name;
+
+        public Student2(int age, string name)
+        {
+            this.age = age;
+            this.name = name;
+        }
+    }
+    ```
+    而这里面的Student没有无参构造函数, 反序列化就会直接报错
+    </br>
+
+2. 虽然支持字典, 但是键在使用为数值时会有问题, 需要使用字符串类型
+    - 上面在序列化的时候也提到了, 由于Json的键必须是字符串, 所以对于Dictionary<int,string>这样的数据结构来说是会报错的, 所以要么在使用的时候只用以string为键的字典; 要么去写一个方法自己去处理Json中的键(这种方法肯定很麻烦)
 
 ## 4.3 注意事项
+将之前我先准备一个示例和一个相应的类
+```json
+[
+    {"hp":1,"speed":10,"volume":100,"scale":15},
+    {"hp":2,"speed":20,"volume":200,"scale":25},
+    {"hp":3,"speed":30,"volume":300,"scale":35}
+]
+```
+```CSharp
+public class ExampleInfo
+{
+    public int hp;
+    public int speed;
+    public int volume;
+    public int scale;
+}
+```
+
 1. LitJson可以直接读取数据集合
+```CSharp
+string jsonStr = File.ReadAllText(Application.persistentDataPath + "/exampleInfo.json");
+List<ExampleInfo2> infos2 = JsonMapper.ToObject<List<ExampleInfo2>>(jsonStr);
+```
+
 2. 文本编码格式需要是UTF-8 不然无法加载
 
 **总结**
-1. LitJson提供的序列化反序列化方法 JsonMapper.ToJson和ToObject<>
+1. LitJson提供的序列化反序列化方法 JsonMapper.ToJson 和 ToObject<>
 2. LitJson无需加特性
 3. LitJson不支持私有变量
 4. LitJson支持字典序列化反序列化
 5. LitJson可以直接将数据反序列化为数据集合
 6. LitJson反序列化时 自定义类型需要无参构造
 7. Json文档编码格式必须是UTF-8
+
+***
+# 五. JsonUtility与LitJson
+
+## 5.1 相同点
+1. 他们都是用于Json的序列化反序列化
+2. Json文档编码格式必须是UTF-8
+3. 都是通过静态类进行方法调用
+
+## 5.2 不同点
+1. JsonUtlity是Unity自带，LitJson是第三方需要引用命名空间
+2. JsonUtlity使用时自定义类需要加特性, LitJson不需要
+3. JsonUtlity支持私有变量(加特性), LitJson不支持
+4. JsonUtlity不支持字典, LitJson支持(但是键只能是字符串)
+5. JsonUtlity不能直接将数据反序列化为数据集合(数组字典), LitJson可以
+6. JsonUtlity对自定义类不要求有无参构造，LitJson需要
+7. JsonUtlity存储空对象时会存储默认值而不是null，LitJson会存null
+
+## 5.3 如何选择两者
+根据实际需求, 建议使用LitJson
+原因：LitJson不用加特性，支持字典，支持直接反序列化为数据集合，存储null更准确
