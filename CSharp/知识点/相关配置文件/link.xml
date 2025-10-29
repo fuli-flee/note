@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+  
+  <!--保存整个程序集-->
+  <assembly fullname="UnityEngine" preserve="all"/>
+  <!--没有“preserve”属性，也没有指定类型意味着保留所有-->
+  <assembly fullname="UnityEngine"/>
+
+  <!--完全限定程序集名称-->
+  <assembly fullname="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+    <type fullname="Assembly-CSharp.Foo" preserve="all"/>
+  </assembly>
+
+  <!--在程序集中保留类型和成员-->
+  <assembly fullname="Assembly-CSharp">
+    <!--保留整个类型-->
+    <type fullname="MyGame.A" preserve="all"/>
+    <!--没有“保留”属性，也没有指定成员 意味着保留所有成员-->
+    <type fullname="MyGame.B"/>
+    <!--保留类型上的所有字段-->
+    <type fullname="MyGame.C" preserve="fields"/>
+    <!--保留类型上的所有方法-->
+    <type fullname="MyGame.D" preserve="methods"/>
+    <!--只保留类型-->
+    <type fullname="MyGame.E" preserve="nothing"/>
+    <!--仅保留类型的特定成员-->
+    <type fullname="MyGame.F">
+      <!--类型和名称保留-->
+      <field signature="System.Int32 field1" />
+      <!--按名称而不是签名保留字段-->
+      <field name="field2" />
+      <!--方法-->
+      <method signature="System.Void Method1()" />
+      <!--保留带有参数的方法-->
+      <method signature="System.Void Method2(System.Int32,System.String)" />
+      <!--按名称保留方法-->
+      <method name="Method3" />
+
+      <!--属性-->
+      <!--保留属性-->
+      <property signature="System.Int32 Property1" />
+      <property signature="System.Int32 Property2" accessors="all" />
+      <!--保留属性、其支持字段（如果存在）和getter方法-->
+      <property signature="System.Int32 Property3" accessors="get" />
+      <!--保留属性、其支持字段（如果存在）和setter方法-->
+      <property signature="System.Int32 Property4" accessors="set" />
+      <!--按名称保留属性-->
+      <property name="Property5" />
+
+      <!--事件-->
+      <!--保存事件及其支持字段（如果存在），添加和删除方法-->
+      <event signature="System.EventHandler Event1" />
+      <!--根据名字保留事件-->
+      <event name="Event2" />
+    </type>
+
+    <!--泛型相关保留-->
+    <type fullname="MyGame.G`1">
+      <!--保留带有泛型的字段-->
+      <field signature="System.Collections.Generic.List`1&lt;System.Int32&gt; field1" />
+      <field signature="System.Collections.Generic.List`1&lt;T&gt; field2" />
+
+      <!--保留带有泛型的方法-->
+      <method signature="System.Void Method1(System.Collections.Generic.List`1&lt;System.Int32&gt;)" />
+      <!--保留带有泛型的事件-->
+      <event signature="System.EventHandler`1&lt;System.EventArgs&gt; Event1" />
+    </type>
+
+
+    <!--如果使用类型，则保留该类型的所有字段。如果类型不是用过的话会被移除-->
+    <type fullname="MyGame.I" preserve="fields" required="0"/>
+
+    <!--如果使用某个类型，则保留该类型的所有方法。如果未使用该类型，则会将其删除-->
+    <type fullname="MyGame.J" preserve="methods" required="0"/>
+
+    <!--保留命名空间中的所有类型-->
+    <type fullname="MyGame.SomeNamespace*" />
+
+    <!--保留名称中带有公共前缀的所有类型-->
+    <type fullname="Prefix*" />
+
+  </assembly>
+  
+  
+
+</linker>
