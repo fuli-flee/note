@@ -910,6 +910,8 @@ SpriteAtlas sa = Resources.Load<SpriteAtlas>("MyAlas");
 //从图集中加载指定名字的小图
 sa.GetSprite("bk");
 ```
+***
+
 # 五. UI事件监听接口
 目前所有的控件都只提供了常用的事件监听列表
 如果想做一些类似长按，双击，拖拽等功能是无法制作的

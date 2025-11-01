@@ -1209,6 +1209,12 @@ SDF 技术生成的字体纹理并不是普通的位图，而是基于每个像�
 # 十一. 工具类相关
 
 ## 11.1 TMP_TextEventHandler类
+<center>
+
+![alt text](/Unity/图片/TextMeshPro/TextMeshPro11-01_10-30-05.jpg)
+
+</center>
+
 它是 TextMeshPro 中提供的一个交互工具类
 主要用于处理用户和TMP文本之间的交互事件
 主要作用是监听并响应 TMP 文本中的特定区域或标签（如链接 <link> 和特定字符）
@@ -1222,6 +1228,87 @@ SDF 技术生成的字体纹理并不是普通的位图，而是基于每个像�
 - 行：`onLineSelection` —— 当用户悬停某一行文本时触发
 - 精灵图片：`onSpriteSelection` —— 当用户悬停某一精灵图片时触发
 
+### 11.1.2 代码控制
+**各个监听函数的参数含义：**
+1. On Character Selection (Char, Int32)
+    - Char: 被选中的字符
+    - Int32: 该字符在文本字符串中的索引位置
+</br>
+
+2. On Sprite Selection (Char, Int32)
+    - Char: 被选中的精灵字符（TMP 中的内嵌精灵）
+    - Int32: 该精灵字符在文本字符串中的索引位置
+</br>
+
+3. On Word Selection (String, Int32, Int32)
+    - String: 被选中的完整单词
+    - 第一个 Int32: 单词的第一个字符在文本中的索引位置
+    - 第二个 Int32: 单词的长度（字符数）
+</br>
+
+4. On Line Selection (String, Int32, Int32)
+    - String: 被选中的整行文本
+    - 第一个 Int32: 该行第一个字符在文本中的索引位置
+    - 第二个 Int32: 该行的长度（字符数）
+</br>
+
+5. On Link Selection (String, String, Int32)
+    - 第一个 String: URL
+    - 第二个 String: 链接的显示文本
+    - Int32: 链接在文本中的索引位置
+</br>
+
+在对应的监听事件里添加相应的函数就行了
+```CSharp
+private void Start()
+{
+    TMP_TextEventHandler tmpHandler = gameObject.GetComponent<TMP_TextEventHandler>();
+    tmpHandler.onLinkSelection.AddListener(Link);
+    tmpHandler.onCharacterSelection.AddListener(Character);
+    tmpHandler.onSpriteSelection.AddListener(SpriteTest);
+    tmpHandler.onWordSelection.AddListener(Word);
+    tmpHandler.onLineSelection.AddListener(Line);
+}
+
+public void Character(char ch, int index)
+{
+    print("----------------------字符------------------------");
+    print(ch);
+    print(index);
+}
+
+public void SpriteTest(char ch, int index)
+{
+    print("-----------------------图片-----------------------");
+    print(ch);
+    print(index);
+}
+
+public void Word(string str, int i1, int i2)
+{
+    print("----------------------单词------------------------");
+    print(str);
+    print(i1);
+    print(i2);
+}
+
+public void Line(string str, int i1, int i2)
+{
+    print("-----------------------行-----------------------");
+    print(str);
+    print(i1);
+    print(i2);
+}
+
+public void Link(string linkInfo, string linkText, int index)
+{
+    print("------------------------链接----------------------");
+    print(linkInfo);
+    print(linkText);
+    print(index);
+}
+```
+
 ***
 ## 11.2 TMP_TextUtilities
 它是 TextMeshPro 中提供的一个实用工具类
@@ -1229,7 +1316,7 @@ SDF 技术生成的字体纹理并不是普通的位图，而是基于每个像�
 我们主要在点击文本时，利用该类来获取点击到的具体内容
 
 ### 11.2.1 常用API
-下面的方法返回的都是索引值, 如果没有获取到信息，返回的索引为-1
+下面的方法返回的都是索引值, **如果没有获取到信息，返回的索引为-1**
 利用获取到的索引可以在TMP文本控件中的textInfo属性中的
 - linkInfo
 - wordInfo
@@ -1250,3 +1337,25 @@ SDF 技术生成的字体纹理并不是普通的位图，而是基于每个像�
    - 获取单词索引：int FindNearestWord(TMP_Text text, Vector3 position, Camera camera)
    - 获取单字符索引：int FindNearestCharacterOnLine (TMP_Text text, Vector3 position, Camera camera)
    - 获取行索引：int FindNearestLine(TMP_Text text, Vector3 position, Camera camera)
+
+### 11.2.2 代码控制
+这里以获取链接ID为例
+
+- 先让类继承想要功能的接口, [相关知识在UGUI的第五章](/Unity/知识点/UI/UGUI.md)
+- 然后去实现相关成员方法
+
+```CSharp
+public class HandleTest : MonoBehaviour, IPointerClickHandler
+{
+    public TextMeshProUGUI tmpUIText;
+    
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        int linkIndex = TMP_TextUtilities.FindIntersectingLink(tmpUIText, eventData.position, null);
+        if (linkIndex != -1)
+        {
+            print(tmpUIText.textInfo.linkInfo[linkIndex].GetLinkID());
+        }
+    }
+}
+```
