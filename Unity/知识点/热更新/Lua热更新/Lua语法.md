@@ -310,3 +310,420 @@ print(temp4) -- 不会报错, 无非就是没有接到返回值, 输出nil
   - 如果变量不够 不影响 值接取对应位置的返回值
   - 如果变量多了也不影响,会直接赋为nil
 - lua中 函数不支持重载 ,默认调用最后一个声明的函数
+***
+
+## 1.8 table
+lua没有复杂类型, 只是用表去表示它们的特征而已
+就像栈(数据结构), 你可以用两个栈去倒腾, 能模拟出队列的用法, 是一个道理
+
+### 1.8.1 数组
+- 基本结构
+    ```lua
+    a = {{1,2,3},{4,5,6}} 
+    print(a[2][1]) -- 输出4
+
+    -- 遍历输出
+    for i=1,#a do
+        b = a[i]
+        for j=1,#b do
+            print(b[j])
+        end
+    end
+    ```
+- 自定义索引
+    即使其中默认元素索引被自定义索引给断开了, 它也能呢继续默认索引
+    ```lua
+    a = {[0] = 1,2,3,[-1]=4,5}
+    print(a[0]) -- 1
+    print(a[-1]) -- 4
+    print(#a) -- 3
+
+    print(a[1]) -- 2 
+    print(a[2]) -- 3
+    print(a[3]) -- 5
+    ```
+- 自定义索引的坑
+    自定义索引断一个数值还能接上, 断两个就不接了
+    ```lua
+    a = {[1] = 1,[2] = 2,[4] = 4,[5] = 5}
+    print(#a) --输出 5
+
+    b = {[1] = 1,[2] = 2,[5] = 5,[6] = 6}
+    print(#b) --输出 2
+
+    c = {[1] = 1,[2] = 2,[4] = 4,[6] = 6}
+    print(#c) --输出 6
+    ```
+
+注意:
+- lua中的索引默认从1开始
+- lua中所有的复杂类型都是table（表）
+- 中间元素为nil, 会断掉长度, 使其获取不准确
+
+***
+### 1.8.2 ipairs迭代器遍历
+ipairs遍历是 从1开始往后遍历的, 且需要索引连续
+只能找到连续索引的 键 如果中间断序了 它也无法遍历出后面的内容
+```lua
+a = {[0] = 1, 2, [100]=3, 4, 5, [5] = 6}
+for i,k in ipairs(a) do
+    print("ipairs遍历键值 "..i.."_"..k)
+end
+```
+输出结果为
+```txt
+ipairs遍历键值 1_2
+ipairs遍历键值 2_4
+ipairs遍历键值 3_5
+```
+
+**ipairs迭代器遍历键**
+```lua
+for i in ipairs(a) do
+	print("ipairs遍历键"..i)
+end
+```
+输出结果为
+```txt
+ipairs遍历键 1
+ipairs遍历键 2
+ipairs遍历键 3
+```
+
+### 1.8.3 pairs迭代器遍历
+```lua
+--它能够把所有的键都找到 通过键可以得到值
+for i,v in pairs(a) do
+	print("pairs遍历键值"..i.."_"..v)
+end
+```
+输出结果为
+```txt
+pairs遍历键值 1_2
+pairs遍历键值 2_4
+pairs遍历键值 3_5
+pairs遍历键值 0_1
+pairs遍历键值 5_6
+pairs遍历键值 100_3
+```
+
+**pairs迭代器遍历键**
+```lua
+for i in pairs(a) do
+	print("pairs遍历键"..i)
+end
+```
+输出结果为
+```txt
+pairs遍历键 1
+pairs遍历键 2
+pairs遍历键 3
+pairs遍历键 0
+pairs遍历键 5
+pairs遍历键 100
+```
+
+**补充**
+table 的储存分为**数组**部分和**哈希表**部分
+- 数组部分，从 1 开始作整数数字索引。这可以提供紧凑且高效的随机访问。
+- 哈希表部分，唯一不能做哈希键值的是 nil 
+
+在 Lua 中，使用 pairs 遍历 table 时，遍历顺序是不确定的，Lua 只保证每个键值对都会被访问一次，但不保证顺序。
+
+不过，pairs 的实现通常是：
+
+1. 先遍历 数组部分（连续正整数键 1, 2, 3, …）
+
+2. 再遍历 哈希部分（其他所有键，包括 0、负数、不连续的正整数、字符串等），顺序取决于它们在哈希表中的存储位置，这与插入顺序、哈希算法、表大小等有关。
+
+所以
+
+- 数组部分（从 1 开始的连续正整数索引）按数字顺序遍历。
+
+- 哈希部分（其他键）遍历顺序不保证，可能因 Lua 版本、表大小、插入顺序等变化。
+
+- 不要依赖 pairs 的顺序，如果需要有序遍历，应自己维护键的顺序（例如用一个数组存储键并排序）。
+
+***
+### 1.8.4 字典
+
+- 声明
+    ```lua
+    a = {["name"] = "扶离", ["age"] = 21, ["1"] = 5}
+
+    --访问值
+    print(a["name"]) -- 扶离
+    print(a.name) -- 扶离
+    ```
+
+- 修改
+    ```lua
+    a["name"] = "STL";
+    print(a["name"]) -- STL
+    ```
+- 新增
+    ```lua
+    a["sex"] = false
+    print(a["sex"]) -- false
+    ```
+- 删除
+    ```lua
+    a["sex"] = nil
+    print(a["sex"]) -- nil
+    ```
+- 遍历
+    ```lua
+    -- 遍历一定用pairs
+    -- 以下三种方式都能输出键值对
+    for k,v in pairs(a) do
+        print(k,v)
+    end
+
+    for k in pairs(a) do
+        print(k)
+        print(a[k])
+    end
+
+    --这种不光输出值, 键值都会打印出来
+    for _,v in pairs(a) do
+        print(_, v)
+    end
+    ```
+
+注意: 
+- 虽然可以通过`.`成员变量的形式得到值 但是不能是数字, 也就是不存在 `a.1` 这种写法去获取值
+
+***
+
+### 1.8.5 类和结构体
+Lua中是默认没有面向对象的 需要自己来实现
+```lua
+Student = { 
+	--成员变量
+	age = 20, 
+	subject = "Math",
+
+	--成员函数
+	GrowUp = function()
+		--这样写 这个age 和表中的age没有任何关系 它是一个全局变量
+		print(age) -- 输出nil 
+
+		--想要在表内部函数中 调用表本身的属性或者方法
+		--一定要指定是谁的 所以要使用 表名.属性 或 表名.方法
+		print(Student.age)
+	end,
+
+	Learn = function(t)
+        --想要在函数内部调用自己属性或者方法的 方法
+        --把自己作为一个参数传进来 在内部 访问
+		print(t.subject)
+	end
+}
+
+Student.Learn(Student);
+
+-- 声明表过后 可以在表外新增声明
+Student.name = "扶离"
+Student.Speak = function()
+	print("说话")
+end
+function Student.Speak2()
+	print("说话2")
+end
+```
+
+麻烦, 太麻烦了, 调用自己的属性还要点明是自己的
+这就跟你喊你儿子, 本来喊一声"儿子" 就知道是谁了, 现在偏要让你喊 "xxx的儿子", 你儿子才认你一样怪
+
+解决方案:
+- 冒号调用方法 会默认把调用者 作为第一个参数传入方法中
+- self 表示 默认传入的第一个参数
+```lua
+--那调用成员函数就变得简单了
+Student:Learn();
+
+--那么对于在外部调用也能起效了
+function Student:Speak2()
+	print(self.."说话2") -- 扶离说话
+end
+```
+注意:
+- Lua 里的 self 本身没有特殊含义，它**不是关键字**, 它只是一个约定俗成的变量名和语法糖，只有满足特定条件，才会被自动赋值。
+- Lua 中要让 self 自动作为第一个参数传入，必须满足以下两种场景之一：
+   1. 用 `:` 定义和调用函数
+   2. 用 `.` 定义和调用函数时手动传入 self
+- `:` 不能用在赋值语句的左侧,只能用在 `function 表:方法()` 或 `表:方法() （调用）`中
+  - 所以不存在`Student:Speak = function ()`它会错误地当成 `Student.Speak(Student)`
+  - 所以要么写成上面的标准形式, 要么写成`Student.Speak = function(self)`
+- 附一张Lua的关键字表
+```txt
+and       break     do        else      elseif    end
+false     for       function  goto      if        in
+local     nil       not       or        repeat    return
+then      true      until     while
+```
+***
+### 1.8.6 API
+- 插入
+    向 table 的 “数组部分” 插入元素（默认插在末尾）
+    ```lua
+    -- t（目标表）、pos（插入位置，可选，默认 #t+1）、value（插入值）
+    table.insert(t, [pos], value)
+    ```
+- 移除
+    删除 table “数组部分” 的元素（默认删末尾），后续元素自动前移
+    ```lua
+    -- t（目标表）、pos（删除位置，可选，默认 #t）
+    table.remove(t, [pos])
+    ```
+- 排序
+    对 table “数组部分” 排序（原地排序，改变原表）
+    ```lua
+    -- t（目标表）、comp（比较函数，可选，默认升序）
+    table.sort(t, [comp])
+    ```
+    这里举个降序的例子
+    ```lua
+    table.sort(t, function(a,b)
+        if a > b then
+            return true
+        end
+    end)
+    ```
+- 拼接
+    将 table “数组部分” 的元素拼接成字符串（仅支持字符串 / 数字类型元素）
+    ```lua
+    -- t（目标表）、sep（分隔符，可选，默认空串）、i（起始索引，可选，默认 1）、j（结束索引，可选，默认 #t）
+    table.concat(t, [sep], [i], [j])
+    ```
+    举个例子
+    ```lua
+    tb = {"123", "456", "789", "10101"}
+    str = table.concat(tb, ",")
+    print(str) -- 输出 123,456,789,10101
+    ```
+***
+### 1.8.7 补充
+在实际运行以下代码时, 不同的版本会出现不同的输出结果
+```lua
+a = {1,2,nil,4,"1231",true,nil}
+
+print(#a) 
+-- LuaForWindows_v5.1.5-52输出的结果是2
+-- 而Lua v5.4.2(我用的)的运行结果是6
+```
+
+**省流: 版本原因**
+
+但是我依旧推荐看一下以下内容, 我想让你知道的是标准序列和空洞的概念以及#运算符的原理
+
+[**官方文档3.4.7原话**](https://www.lua.org/manual/5.4/manual.html#3.4.7)
+When is a sequence, returns its only border, which corresponds to the intuitive notion of the length of the sequence. When is not a sequence, can return any of its borders. (The exact one depends on details of the internal representation of the table, which in turn can depend on how the table was populated and the memory addresses of its non-numeric keys.) t#tt#t
+
+**以下是对官方文档的直译:**
+
+长度运算符由----元前缀运算符 #表示。
+
+字符串的长度是其字节数。（当每个字符为一个字节时，这就是字符串长度的通常含义。）
+
+对表应用长度运算符会返回该表中的一个边界。表中的边界是满足以下条件的任意非负整数：（边界 ==0 或 t [边界]~=nil）并且（t [边界 + 1]==nil 或 边界 ==math.maxinteger）
+
+通俗地说，边界是表中存在的任意正整数索引，且该索引后跟着一个不存在的索引，再加上两种极限情况：当索引 1 不存在时，边界为 0；当最大整数索引存在时，边界为该最大整数。请注意，非正整数的键不会影响边界。
+
+恰好有一个边界的表称为序列。例如，表 {10,20,30,40,50} 是一个序列，因为它只有一个边界（5）。表 {10,20,30,nil,50} 有两个边界（3 和 5），因此它不是一个序列。（索引 4 处的 nil 被称为空洞。）表 {nil,20,30,nil,60,nil,60,nil} 有三个边界（0、3 和 6），所以它也不是一个序列。表 {} 是一个边界为 0 的序列。
+
+当 t 是序列时，#t 返回其唯一的边界，这与序列长度的直观概念相对应。当 t 不是序列时，#t 可以返回其任意一个边界。（具体返回哪一个取决于表的内部表示细节，而这又可能取决于表的填充方式及其非数字键的内存地址。）
+
+**总结**
+
+Lua 不同版本对 # 运算符的核心算法逻辑没有本质差异,但是其内部实现细节可能因版本、虚拟机实现不同而有差异, 差异仅存在于「非序列表返回哪个边界」的具体选择上。
+
+- 若表是标准序列（无空洞、整数索引 1~n 连续），# 的行为在所有 Lua 版本中完全一致，返回序列长度；
+- 若表是非序列（有空洞、混合非整数键），# 的返回值可能因版本 / 虚拟机不同而变化，这不是「算法不同」，而是「规范允许的实现差异」；
+
+所以官方文档也明确提醒：不要依赖非序列表的 # 结果，若需精确控制长度，应自己维护长度变量，或使用 ipairs（仅遍历序列部分）、pairs（遍历所有键）手动统计。
+
+***
+# 二. 多Lua脚本执行
+
+## 2.1 全局变量和本地变量
+- 全局变量
+    ```lua
+    -- 按照C++或者C#来说, temp是局部变量, 是取不到的
+    for i = 1,2 do
+        temp = "123"
+    end
+    print(temp) -- 123
+    ```
+    这里附一个C++的
+    ```cpp
+    int main()
+    {
+        for (int i = 0; i < 2; ++i)
+            int temp = i;
+
+        std::cout << temp; // 这里会直接报错
+    }
+    ```
+- 局部变量
+    本地（局部）变量的关键字 local
+    ```lua
+    for i = 1,2 do
+        local temp = "123"
+    end
+    print(temp) -- nil
+    ```
+***
+## 2.2 多脚本执行
+- 关键字: `require`
+  - 第一个脚本 `01.lua`
+    ```lua
+    print("落叶捎来讯息")
+    require('02')
+    print(a)
+    -- 输出 落叶捎来讯息
+    --      那是群星的时代
+    --      123
+    ```
+  - 第二个脚本 `02.lua`
+    ```lua
+    a = 123
+    print("那是群星的时代")
+    ```
+- 如果是require加载执行的脚本 加载一次过后不会再被执行
+  - 将第一个脚本改为
+    ```lua
+    print("落叶捎来讯息")
+
+    require('02')
+    require('02')
+    -- 输出依然和上面一样
+    ```
+
+注意:
+- 示例的两个脚本在同一文件夹中
+
+**脚本卸载**
+- `package.loaded["脚本名"]`
+  返回值是boolean 意为 该脚本是否被执行
+  - 卸载已经执行过的脚本
+    ```lua
+    package.loaded["脚本名"] = nil
+    ```
+***
+## 2.3 _G表
+_G表是一个总表(table) 他将我们声明的所有全局的变量都存储在其中
+局部变量不会存到_G表中
+
+- require 执行一个脚本时  可以在脚本最后返回一个外部希望获取的内容
+    - 第一个脚本 `01.lua`
+    ```lua
+    local b = require('02')
+    print(b)--输出 123
+    ```
+  - 第二个脚本 `02.lua`
+    ```lua
+    local a = 123
+    return a
+    ```
+- 根据以上示例表明另一个知识, 可以通过`require`去传输局部变量
