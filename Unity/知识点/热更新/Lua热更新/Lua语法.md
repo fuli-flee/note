@@ -726,4 +726,388 @@ _G表是一个总表(table) 他将我们声明的所有全局的变量都存储�
     local a = 123
     return a
     ```
-- 根据以上示例表明另一个知识, 可以通过`require`去传输局部变量
+- 以上示例引出另一个知识, 可以通过`require`去传输局部变量
+***
+
+# 三. 特殊用法
+## 3.1 多变量赋值
+```lua
+a,b,c = 1,2,"123"
+
+--多变量赋值 如果后面的值不够 会自动补空
+a,b,c = 1,2 
+print(c) --nil
+
+--多变量赋值 如果后面的值多了 会自动省略
+a,b,c = 1,2,3,4,5,6
+```
+## 3.2 多返回值
+```lua
+function Test()
+	return 10,20,30,40
+end
+
+--多返回值时 你用几个变量接 就有几个值
+--如果少了 就少接几个 如果多了 就自动补空
+a,b,c,d,e = Test()
+print(e)--nil
+```
+
+## 3.3 and与or
+
+- `and` 与 `or` 他们不仅可以连接 `boolean` 值 甚至任何东西都可以用来连接
+- **在lua中 只有 nil 和 false 才认为是假**
+</br>
+
+- "短路"——对于and来说  有假则假  对于or来说 有真则真
+- 所以 他们只需要判断 第一个 是否满足 就会停止计算了
+
+```lua
+print( 1 and 2 ) -- 2
+print( 0 and 1) -- 1
+print( nil and 1) -- nil
+print( false and 2) -- false
+print( true and 3) -- 3
+
+print( true or 1 ) -- true
+print( false or 1) -- 1
+print( nil or 2) -- 2
+```
+
+- lua不支持三目运算符, 所以只能像下面这样写
+```lua
+x = 1
+y = 2
+res = (x>y) and x or y
+print(res) -- 2
+```
+***
+# 四. 协同程序
+## 4.1 协程的创建
+- 常用方式 : `coroutine.create()`
+    ```lua
+    fun = function()
+        print(123)
+    end
+
+    co = coroutine.create(fun)
+    print(co) -- thread: 0000000000f9e5c8(这是地址)
+    print(type(co)) -- thread
+    ```
+
+- `coroutine.wrap()`
+    ```lua
+    co2 = coroutine.wrap(fun)
+    print(co2) -- function: 0000000000fa94f0(这是地址)
+    print(type(co2)) -- function
+    ```
+注意: 
+- 协程的本质是一个线程对象
+
+***
+## 4.2 协程的运行
+- `coroutine.resume()`
+    这种方法对应的的`coroutine.create()`
+    resume /rɪˈzuːm/ v. 恢复
+    ```lua
+    coroutine.resume(co) -- 输出 123
+    ```
+- `协程名()`
+    这种方法对应的`coroutine.wrap()`
+    ```lua
+    co2() -- 输出 123
+    ```
+既然第二种方式创建的协程是一个函数, 那`协程名()`这样调用也就说的过去了
+
+***
+## 4.3 协程的挂起
+- `coroutine.yield()`
+解释一下下面的代码
+  - 先创建一个协程, 然后用`resume`调用它
+  - 当它执行到`coroutine.yield(i)`会被挂起
+  - 因为lua执行顺序是从上往下依次执行代码语句
+  - 所以又需要`resume`使其恢复运行, 然后又进入循环被挂起
+    ```lua
+    fun2 = function( )
+        local i = 1
+        while true do
+            print(i)
+            i = i + 1
+            --协程的挂起函数
+            coroutine.yield(i)
+        end
+    end
+
+    co3 = coroutine.create(fun2)
+    coroutine.resume(co3) -- 1
+    coroutine.resume(co3) -- 2
+    ```
+- 同理
+    ```lua
+    co4 = coroutine.wrap(fun2)
+    co4()
+    co4()
+    ```
+### 4.3.1 返回值
+以下代码建立在上面的示例基础上
+- `coroutine.create`
+   其有两个返回值
+   - 一为boolean: 是否恢复成功
+   - 二为函数返回值
+    ```lua
+    co3 = coroutine.create(fun2)
+
+    isOK, tempI = coroutine.resume(co3)
+    print(isOk,tempI) -- 输出 true	2
+    ```
+- `coroutine.wrap()`
+    其只有一个返回值 : 函数返回值
+    ```lua
+    co4 = coroutine.wrap(fun2)
+    print("返回值"..co4()) -- 输出 返回值2
+    ```
+***
+## 4.4 协程的状态
+- `coroutine.status(协程对象)`
+  - dead 结束
+  - suspended 暂停
+  - running 进行中
+- `co4` 无法用 `coroutine.status()` 查看状态, 因为它返回的是一个`function`
+</br>
+
+- `coroutine.running()`
+这个函数可以得到当前正在 运行的协程的线程号
+
+***
+# 五. 元表
+任何表变量都可以作为另一个表变量的元表
+任何表变量都可以有自己的元表（可以看作父类）
+当我们子表中进行一些特定操作时
+会执行元表中的内容
+## 5.1 设置元表
+`setmetatable`
+- 第一个参数 子表
+- 第二个参数 元表
+```lua
+meta = {}
+myTable = {}
+setmetatable(myTable, meta)
+```
+***
+## 5.2 特定操作
+### 5.2.1 __tostring
+当子表要被当做字符串使用时 会默认调用这个元表中的tostring方法
+```lua
+meta = {
+	__tostring = function(t)
+		return t.name
+	end
+}
+
+myTable = {
+	name = "扶离"
+}
+
+setmetatable(myTable, meta)
+
+print(myTable) -- 扶离
+```
+### 5.2.2 __call
+当子表被当做一个函数来使用时 会默认调用这个__call中的内容
+当希望传参数时 一定要记住 默认第一个参数 是调用者自己
+```lua
+meta = {
+    __call = function(a, b)
+		print(a)
+		print(b)
+		print("No Surprises")
+	end
+}
+
+myTable = {
+	name = "Radiohead"
+}
+
+setmetatable(myTable, meta)
+
+--把子表当做函数使用 就会调用元表的 __call方法
+myTable(1)
+
+-- 输出:
+-- table: 00000000010294f0
+-- 1
+-- No Surprises
+```
+### 5.2.3 运算符重载
+
+lua没有`大于`和`大于等于`的元方法
+只能通过`小于`和`小于等于`来取反
+
+|运算符|元方法|说明|
+|:---:|:---:|:---:|
+|+|__add|加|
+|-|__sub|减|
+|*|__mul|乘|
+|/|__div|除|
+|%|__mod|余|
+|^|__pow|幂|
+|==|__eq|等|
+|<|__lt|小于|
+|<=|__le|小于等于|
+|..|__concat|拼接|
+
+举个例子
+```lua
+meta = {
+	--运算符+
+	__add = function(t1, t2)
+		return t1.age + t2.age
+	end,
+	--运算符==
+	__eq = function(t1, t2)
+		return true
+	end
+}
+
+myTable1 = {age = 1}
+setmetatable(myTable1, meta)
+myTable2 = {age = 2}
+
+print(myTable1 + myTable2) -- 3
+print(myTable1 == myTable2) -- true
+```
+
+**追加**:
+对于以下lua代码
+```lua
+meta = {
+  __eq = function(t1, t2)
+     return true
+  end
+}
+myTable1 = {age = 1}
+myTable2 = {age = 2}
+setmetatable(myTable1, meta)
+print(myTable2 == myTable1)
+```
+
+Lua 5.1：**只有当两个表都有相同的元表**时，才会调用 __eq 元方法, 所以会返回false
+Lua 5.2+：**只要任意一个表**有 __eq 元方法，就会调用, 所以会返回true
+
+这个版本差异对小于和小于等于的元方法也同样适用
+
+## 5.2.4 __index和__newIndex
+
+**`__index`**:
+当子表中 找不到某一个属性时 
+会到元表中 __index指定的表去找属性
+```lua
+meta = {
+    name = "扶离",
+    --只有在__index里的属性才会被子表获取到
+    __index = {age = 2}
+}
+
+myTable = {}
+setmetatable(myTable, meta)
+
+print(myTable.age) -- 2
+print(myTable.name) -- nil
+```
+
+- **__index的坑**:
+    ```lua
+    meta = {
+        age = 2,
+        __index = meta
+    }
+
+    myTable = {}
+    setmetatable(myTable, meta)
+
+    print(myTable.age) -- 输出 nil
+    ```
+    但是,你把__index声明到外部
+    ```lua
+    meta = {
+        age = 2
+    }
+    meta.__index = meta
+
+    myTable = {}
+    setmetatable(myTable, meta)
+
+    print(myTable.age) -- 输出 2
+    ```
+
+    所以, 建议把__index的初始化都声明在表外部
+</br>
+
+- **元表嵌套**
+    ```lua
+    metaFather = {
+        age = 2
+    }
+    metaFather.__index = metaFather
+
+    meta = {}
+    meta.__index = meta
+    setmetatable(meta, metaFather)
+
+    myTable = {}
+    setmetatable(myTable, meta)
+
+    print(myTable.age) -- 2
+    ```
+
+**`__newIndex`**: 
+当赋值时，如果赋值一个不存在的索引
+那么会把这个值赋值到newIndex所指的表中 不会修改自己
+```lua
+meta = {}
+myTable = {}
+
+meta.__newindex = {}
+setmetatable(myTable, meta)
+
+--这个__newindex将属性赋值重定向了, 强制变量赋值为__newindex的值
+--所以这里的赋值不会成功
+myTable.age = 2
+
+print(myTable.age) -- 输出nil
+```
+***
+## 5.3 其他
+- getmetatable
+  获取元表
+    ```lua
+    meta = {}
+    myTable = {}
+    setmetatable(myTable, meta)
+
+    print(getmetatable(myTable)) -- table: 0000000000fa9630(这里指的就是meta表)
+    ```
+
+- rawget
+  在搜寻属性时, 只会寻找自身表中的属性, 相当于禁用了__index
+    ```lua
+    meta = { age = 2 }
+    meta.__index = meta
+
+    myTable = {}
+    setmetatable(myTable, meta)
+
+    print(rawget(myTable,"age")) -- nil
+    ```
+
+- rawset
+  忽略__newindex的设置, 只会修改自身的变量
+    ```lua
+    meta = {}
+    myTable = {}
+
+    meta.__newindex = {}
+    setmetatable(myTable, meta)
+    rawset(myTable, "age" , 2)
+    print(myTable.age) -- 2
+    ```
