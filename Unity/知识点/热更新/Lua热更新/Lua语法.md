@@ -713,7 +713,15 @@ Lua 不同版本对 # 运算符的核心算法逻辑没有本质差异,但是其
 ***
 ## 2.3 _G表
 _G表是一个总表(table) 他将我们声明的所有全局的变量都存储在其中
-局部变量不会存到_G表中
+- 所有声明的全局变量 都以键值对的形式存在其中
+- 局部变量不会存到_G表中
+    ```lua
+    _G["a"] = 1
+    print(a) -- 输出 1
+    print(_G.a) -- 输出 1
+    print(_G["a"]) -- 输出 1
+    ```
+
 
 - require 执行一个脚本时  可以在脚本最后返回一个外部希望获取的内容
     - 第一个脚本 `01.lua`
@@ -726,7 +734,7 @@ _G表是一个总表(table) 他将我们声明的所有全局的变量都存储�
     local a = 123
     return a
     ```
-- 以上示例引出另一个知识, 可以通过`require`去传输局部变量
+- 以上示例引出另一个知识, 可以通过`require`绕过_G表去传输局部变量
 ***
 
 # 三. 特殊用法
@@ -1111,3 +1119,297 @@ print(myTable.age) -- 输出nil
     rawset(myTable, "age" , 2)
     print(myTable.age) -- 2
     ```
+***
+# 六. 面向对象
+
+## 6.1 封装
+封装就是把数据和操作数据的方法 “打包” 在一起，隐藏内部实现细节，只对外暴露有限接口。
+
+类的实现就是封装的表现
+lua中 类 都是基于 table来实现
+```lua
+Object = {}
+Object.id = 1
+
+function Object:new()
+	local obj = {}
+	self.__index = self
+	setmetatable(obj,self)
+	return obj
+end
+
+local myObj = Object:new()
+
+print(myObj.id) -- 输出1
+```
+再举一个例子, 想想最后一句代码会输出什么?
+```lua
+Object = {}
+Object.id = 1
+
+function Object:Test()
+	print(self.id)
+end
+
+function Object:new()
+	local obj = {}
+	self.__index = self
+	setmetatable(obj,self)
+	return obj
+end
+
+local myObj = Object:new()
+
+myObj.id = 2
+myObj:Test()
+```
+来捋一遍, 当调用 Object:new() 声明出一个 myObj 对象时
+- 在new方法的内部会创建一个新表obj, 这个表将 Object 设置为元表, 然后将返回值赋值给 myObj 
+- 那此时其实就是独立于 Object 的另一个表了, 那在执行 myObj\.id = 2 时, 其实就和 Object\.id 没有关系了
+- 所以输出结果为 2
+
+***
+## 6.2 继承
+```lua
+Object = {}
+Object.id = 1
+
+function Object:new()
+	local obj = {}
+	self.__index = self
+	setmetatable(obj,self)
+	return obj
+end
+
+function Object:subClass(className)
+	_G[className] = {}
+	local obj = _G[className]
+	self.__index = self
+    --子类 定义一个base属性 代表父类
+	obj.base = self
+	setmetatable(obj, self)
+	return obj
+end
+
+Object:subClass("Person")
+
+local p = Person:new()
+print(p.id)
+```
+- 执行 Person:new()
+    - Person:new() 等价于 Person.new(Person)，所以 self = Person
+    - Person 里没有 new 方法，通过元表链查找：
+    - Person 的元表是 Object（在 subClass 中设置）
+    - Object.__index = Object（在 subClass 中设置）
+    - 所以在 Object 中找到 new 方法
+</br>
+
+- 执行 Object:new()
+    - 此时 self = Person（从调用传递过来）
+    - 关键操作：
+    ```lua
+    self.__index = self      -- Person.__index = Person（覆盖了之前的 Object）
+    setmetatable(obj, self)  -- obj 的元表 = Person
+    ```
+    - 返回的 obj 现在是一个以 Person 为元表的空表
+</br>
+
+- 查找 p\.id
+    - p 本身没有 id 属性
+    - 查找 p 的元表, 找到它的元表是 Person
+    - 查找 Person.__index：Person（在 new 中设置的）
+    - Person 本身没有 id 属性
+    - 继续查找 Person 的元表：Object（在 subClass 中设置的）
+    - 查找 Object.__index：Object（在 subClass 中设置的）
+    - 在 Object 中找到 id = 1
+
+***
+## 6.3 多态
+相同行为 不同表象 就是多态
+相同方法 不同执行逻辑 就是多态
+
+回看上面继承的实例代码, 我一直没有提其中的一句
+```lua
+--子类 定义一个base属性 代表父类
+obj.base = self
+```
+现在就派上用场了
+
+```lua
+Object:subClass("GameObject")
+GameObject.posX = 0;
+GameObject.posY = 0;
+function GameObject:Move()
+	self.posX = self.posX + 1
+	self.posY = self.posY + 1
+	print(self.posX)
+	print(self.posY)
+end
+```
+我再让 Player 去继承 GameObject
+```lua
+GameObject:subClass("Player")
+function Player:Move()
+
+end
+```
+那么最基本的多态就实现了: 子类可以对父类中的相同方法进行重写
+但是在C#中的相同逻辑中, 是可以用 base.Move() 来调用父类的 Move 方法的
+
+为了实现这个功能, 可以把子类改为
+```lua
+function Player:Move()
+    self.base:Move()
+end
+
+local p1 = Player:new()
+local p2 = Player:new()
+```
+这样就完成了--------吗?
+
+认真分析上面的`self.base:Move()`这句代码
+- self.base : 指的是GameObject
+- self.base:Move() : 等价于 GameObject:Move() , 那这里传进去的 self 是 GameObject, 这还面向对象吗? 
+- 也就是说上面代码中的 p1 和 p2 的move方法都是调用的 GameObject:Move() , 它们共享的是一个数据
+- 所以问题还是出在传入参数的self, 解决思路就是要让 self 分别指向自己
+
+所以应该改成
+```lua
+function Player:Move()
+    self.base.Move(self)
+end
+```
+***
+# 七. 深拷贝
+
+## 7.1 lua中的深拷贝
+在Lua中，使用赋值运算符"="进行拷贝的时候，分两种情况：
+
+1. string、number、boolean这些基本类型，会进行复制，会创建一个新对象，拷贝出来的对象和原来的互不影响
+    ```lua
+    local num1 = 123
+    local num2 = num1
+    num2 = 456
+
+    print(num1) -- 123
+    print(num2) -- 456
+    ```
+2. table类型，是直接进行的引用，拷贝出来的对象和原来是一个对象，改一处另一处也会变化
+    ```lua
+    local tb1 = {x = 1,y = 2,z = 3}
+    local tb2 = tb1
+    tb2.x = 4
+    print(tb1.x) -- 4
+    print(tb2.x) -- 4
+    ```
+
+因此，一般我们提到Lua中的深拷贝，一般都是希望对table类型的变量实现深拷贝。即拷贝后的内容变化，不会影响原来的内容。
+
+而Lua中并没有提供这样的api，因此我们一般会自己封装一个函数。
+
+## 7.2 如何进行深拷贝？
+进行table深拷贝整体的封装思路就是递归地遍历表的每一个元素，并且在遇到子表时，对子表也进行深拷贝。这样可以确保拷贝后的新表与原表完全独立，任何对新表的修改都不会影响到原表。
+
+```lua
+function clone(object)
+    -- 记录已经复制过的表，防止循环引用
+    local lookup_table = {}
+    local function _copy(object)
+        if type(object) ~= "table" then
+            return object
+        -- 如果已经复制过该表，则直接返回存储的表
+        elseif lookup_table[object] then
+            return lookup_table[object]
+        end
+
+        local new_table = {}
+        -- 牢记table引用是浅拷贝
+        -- 所以new_table在这里改变了也就意味着lookup_table[object]也改变了
+        -- 所以lookup_table[object]的内容可以保留到后续的递归调用中
+        lookup_table[object] = new_table
+        for key,value in pairs(object) do
+            new_table[_copy(key)] = _copy(value)
+        end
+        return setmetatable(new_table, getmetatable(object))
+    end
+    return _copy(object)
+end
+```
+每次递归调用_copy函数时，都会对原表中的键和值进行深拷贝，并将结果插入到新表"new_table"中。这样就确保了新表和原表之间完全独立
+
+***
+# 八. 自带库
+
+## 8.1 时间
+```lua
+-- 系统时间
+print(os.time())
+
+-- 自己传入参数 得到时间
+print(os.time({year = 1931, month = 9, day = 18})) -- 100800
+
+--获取当前时间具体信息
+local nowTime = os.date("*t")
+for k,v in pairs(nowTime) do
+	print(k,v)
+end
+```
+***
+## 8.2 数学运算
+`math`
+- 绝对值
+    ```lua
+    math.abs()
+    ```
+- 弧度转角度
+    ```lua
+    math.deg(math.pi)
+    ```
+- 三角函数 传参为弧度
+    ```lua
+    math.cos(math.pi)
+    ```
+- 向下向上取整
+    ```lua
+    print(math.floor(2.6)) -- 2
+    print(math.ceil(5.2)) -- 6
+    ```
+- 最大最小值
+    ```lua
+    print(math.max(1,2)) -- 2
+    print(math.min(4,5)) -- 4
+    ```
+- 小数分离 分成整数部分和小数部分
+    ```lua
+    print(math.modf(1.2)) -- 1	0.2
+    ```
+- 幂运算
+    ```lua
+    print(math.pow(2, 5)) -- 32.0
+    ```
+- 随机数
+    ```lua
+    --先设置随机数种子
+    math.randomseed(os.time())
+    print(math.random(100))
+    ```
+- 开方
+    ```lua
+    print(math.sqrt(4)) -- 2.0
+    ```
+***
+## 8.3 路径
+```lua
+--lua脚本加载路径
+package.path
+```
+***
+# 九. GC
+关键字: `collectgarbage`
+```lua
+-- 获取当前lua占用内存数 以KB为单位 用返回值*1024 就可以得到具体的内存占用字节数
+collectgarbage("count")
+
+-- 进行垃圾回收
+collectgarbage("collect")
+```
