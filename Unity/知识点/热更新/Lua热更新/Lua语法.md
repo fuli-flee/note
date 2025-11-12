@@ -1281,6 +1281,12 @@ end
 ```
 ***
 # 七. 深拷贝
+回顾深拷贝与浅拷贝
+
+深拷贝与浅拷贝这两个概念只针对「复合数据类型」（如指针、结构体、对象等包含间接引用 / 嵌套数据的类型）
+
+- 浅拷贝仅复制「指针本身」，不复制指针指向的堆内存数据。此时两个变量的指针指向同一块内存，修改其中一个会影响另一个。
+- 深拷贝不仅复制「指针本身」，还会为指针重新分配堆内存，并将原始指针指向的数据完整复制到新内存中。
 
 ## 7.1 lua中的深拷贝
 在Lua中，使用赋值运算符"="进行拷贝的时候，分两种情况：
@@ -1323,8 +1329,7 @@ function clone(object)
         end
 
         local new_table = {}
-        -- 牢记table引用是浅拷贝
-        -- 所以new_table在这里改变了也就意味着lookup_table[object]也改变了
+        -- new_table在这里改变了也就意味着lookup_table[object]也改变了
         -- 所以lookup_table[object]的内容可以保留到后续的递归调用中
         lookup_table[object] = new_table
         for key,value in pairs(object) do
