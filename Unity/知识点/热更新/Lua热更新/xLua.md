@@ -901,3 +901,553 @@ Lua 本身只有 8 种基础类型（nil、boolean、number、string、table、f
 建议 Lua 中要使用的类, 都加上该特性, 可以提升性能
 如果不加该特性, 除了拓展方法对应的类, 其他类都不会报错
 但是Lua是通过反射的机制去调用CSharp的类, 效率较低
+***
+## 3.5 ref和out函数
+
+```CSharp
+public class Quote
+{
+    public int RefFun(int a, ref int b, ref int c, int d)
+    {
+        b = a + d;
+        c = a - d;
+        return 100;
+    }
+
+    public int OutFun(int a, out int b, out int c, int d)
+    {
+        b = a;
+        c = d;
+        return 200;
+    }
+
+    public int RefOutFun(int a, out int b, ref int c)
+    {
+        b = a * 10;
+        c = a * 20;
+        return 300;
+    }
+}
+```
+
+### 3.5.1 ref
+ref参数 会以多返回值的形式返回给lua
+如果函数存在返回值 那么第一个值 就是该返回值
+之后的返回值 就是ref的结果 从左到右一一对应
+ref参数 需要传入一个默认值 占位置
+传参数少于参数列表中参数个数时会用其默认值补位
+```lua
+Quote = CS.Quote
+
+local obj = Quote()
+
+local a,b,c,d = obj:RefFun(1,0,0,1)
+print(a) -- 100 
+print(b) -- 2
+print(c) -- 0
+print(d) -- nil
+```
+
+### 3.5.2 out
+out参数 会以多返回值的形式返回给lua
+如果函数存在返回值 那么第一个值 就是该返回值
+之后的返回值 就是out的结果 从左到右一一对应
+out参数 不需要传占位置的值
+```lua
+local a,b,c = obj:OutFun(20,30)
+print(a) -- 200
+print(b) -- 20 
+print(c) -- 30
+```
+
+### 3.5.3 ref和out混合
+ref需占位, out不用传
+```lua
+local a,b,c = obj:RefOutFun(50,2) -- 这里的 2 用于占位, 传多少都无所谓
+print(a) -- 300
+print(b) -- 500 
+print(c) -- 1000
+```
+***
+## 3.6 重载函数
+
+```CSharp
+public class OverLoad
+{
+    public int Calc(){ return 100; }
+
+    public int Calc(int a, int b){ return a + b; }
+
+    public int Calc(int a){ return a; }
+
+    public float Calc(float a){ return a; }
+}
+```
+
+虽然Lua自己不支持写重载函数
+但是Lua支持调用C#中的重载函数 
+```lua
+OverLoad = CS.OverLoad
+local obj = OverLoad()
+
+print(obj:Calc()) -- 100
+print(obj:Calc(15, 1)) -- 16
+```
+
+Lua虽然支持调用C#重载函数, 但是因为Lua中的数值类型 只有Number
+对C#中多精度的重载函数支持不好 , 在使用时 可能出现意想不到的问题
+```lua
+print(obj:Calc(15.2, 1)) -- 输出 1
+```
+为了解决重载函数含糊的问题, xlua提供了解决方案 反射机制 
+这种方法只做了解 尽量别用
+Type是反射的关键类, 得到指定函数的相关信息
+```lua
+local m1 = typeof(CS.Lesson6):GetMethod("Calc", {typeof(CS.System.Int32)})
+local m2 = typeof(CS.Lesson6):GetMethod("Calc", {typeof(CS.System.Single)})
+```
+
+然后再通过xlua提供的`tofunction`方法 把它转成lua函数来使用
+一般我们转一次 然后重复使用
+```lua
+local f1 = xlua.tofunction(m1)
+local f2 = xlua.tofunction(m2)
+
+print(f1(obj, 10)) -- 10
+print(f2(obj, 10.2)) -- 10.199999809265
+```
+***
+## 3.7 委托与事件
+```CSharp
+public class Mission
+{
+    public UnityAction del;
+    
+    public event UnityAction eventAction;
+
+    public void DoEvent()
+    {
+        if (eventAction != null) 
+            eventAction.Invoke();
+    }
+}
+```
+### 3.7.1 委托
+
+委托是用来装函数的, 使用C#中的委托 就是用来装lua函数的
+```lua
+-- 先声明一个测试函数
+local fun = function( )
+	print("Lua函数Fun")
+end
+```
+
+**增加函数**
+Lua中没有复合运算符, 不能+=
+如果第一次往委托中加函数, 因为是nil, 不能直接`+`, 只能用`=`
+```lua
+obj.del = fun
+
+-- 以下两种方式都能将函数加入委托
+obj.del = obj.del + fun
+--不建议这样写 最好最好还是 先声明函数再加
+obj.del = obj.del + function( )
+	print("临时申明的函数")
+end
+
+--执行委托
+obj.del()
+```
+
+**移除函数**
+```lua
+obj.del = obj.del - fun
+obj.del = obj.del - fun
+
+obj.del()
+```
+
+**清空**
+清空所有存储的函数
+清空后若再想增加函数需要使用`=`
+```lua
+obj.del = nil
+```
+
+### 3.7.2 事件
+```lua
+--先声明一个测试函数
+local fun2 = function()
+	print("事件加的函数")
+end
+```
+**增加函数**
+lua中使用C#事件增加函数 
+有点类似使用成员方 `冒号事件名("+", 函数变量)`
+```lua
+--也有两种方式
+obj:eventAction("+", fun2)
+--最好不要这样写
+obj:eventAction("+", function()
+	print("事件加的匿名函数")
+end)
+
+-- 调用类中的方法执行事件
+obj:DoEvent()
+```
+**移除函数**
+```lua
+obj:eventAction("-", fun2)
+obj:DoEvent()
+```
+
+**清空**
+不能直接设空
+```lua
+obj:ClaerEvent()
+```
+***
+## 3.8 二维数组
+```CSharp
+public class Special
+{
+    public int[,] array = new int[2, 3] { { 1, 2, 3 }, { 4, 5, 6 } };
+}
+
+//Array的源码
+public int GetLength(int dimension) { throw null; }
+public object GetValue(int index1, int index2) { throw null; }
+```
+**获取长度**
+```lua
+print("行：" .. obj.array:GetLength(0))
+print("列：" .. obj.array:GetLength(1))
+```
+
+**获取元素**
+不能通过`[0,0]`或者`[0][0]`访问元素 会报错
+```lua
+print(obj.array:GetValue(0,0))
+print(obj.array:GetValue(1,0))
+```
+遍历
+```lua
+for i=0,obj.array:GetLength(0)-1 do
+	for j=0,obj.array:GetLength(1)-1 do
+		print(obj.array:GetValue(i,j))
+	end
+end
+```
+### 3.8.1 错误
+但是你把代码这样写后你会发现
+```lua
+Special = CS.Special
+
+local obj = Special()
+
+print(obj.array:GetValue(0,0))
+print(obj.array:GetValue(1,0))
+print("********************")
+
+for i=0,obj.array:GetLength(0)-1 do
+	for j=0,obj.array:GetLength(1)-1 do
+		--print(i,j)
+		print(obj.array:GetValue(i,j))
+	end
+end
+```
+输出为
+```txt
+1
+4
+********************
+2
+3
+5
+6
+```
+
+但是你把代码改成这样
+```lua
+Special = CS.Special
+local obj = Special()
+
+for i=0,obj.array:GetLength(0)-1 do
+	for j=0,obj.array:GetLength(1)-1 do
+		--print(i,j)
+		print(obj.array:GetValue(i,j))
+	end
+end
+```
+就能正常输出
+```txt
+1
+2
+3
+4
+5
+6
+```
+解决方案等我后面研究明白了再来写
+***
+## 3.9 null和nil
+再开发时经常出现这样的场景: 
+```txt
+往场景对象上添加一个脚本
+
+if(对象上没有该脚本)
+{
+    对象.AddComponent<脚本名>();
+}
+else
+{
+    什么也不干;
+}
+```
+举个例子:
+```lua
+GameObject = CS.UnityEngine.GameObject
+Rigidbody = CS.UnityEngine.Rigidbody
+
+local obj = GameObject("测试加脚本")
+
+local rig = obj:GetComponent(typeof(Rigidbody))
+print(rig) -- 输出 null: 0
+
+if rig == nil then
+	rig = obj:AddComponent(typeof(Rigidbody))
+end
+
+print(rig) -- 输出 null: 0
+```
+
+从上面的代码可知, 代码根本没有执行if语句块
+原因在于 nil和null 没法进行==比较
+
+**解决方案**
+- Equals
+    ```lua
+    if rig:Equals(nil) then
+        rig = obj:AddComponent(typeof(Rigidbody))
+    end
+    ```
+</br>
+
+- lua中声明一个全局函数 IsNull
+    ```lua
+    function IsNull(obj)
+        if obj == nil or obj:Equals(nil) then
+            return true
+        end
+        return false
+    end
+
+    if IsNull() then
+        rig = obj:AddComponent(typeof(Rigidbody))
+    end
+    ```
+    `print(rig == nil)` → false（不是 Lua 原生 nil）
+    `print(rig:Equals(nil))` → true（是 C# null）
+</br>
+
+- C# 中为Object声明一个拓展方法(推荐)
+    ```CSharp
+    [LuaCallCSharp]
+    public static class JudgeNull
+    {
+        public static bool IsNull(this Object obj)
+        {
+            return obj == null;
+        }
+    }
+    ```
+    此时就可以用lua去调用该方法判空了
+    ```lua
+    if rig:IsNull() then
+        rig = obj:AddComponent(typeof(Rigidbody))
+    end
+    ```
+***
+## 3.10 让系统类型和Lua能互相访问
+**回顾:**
+- CSharpCallLua: 
+  - 让xlua识别自定义委托是用来装lua委托的
+  - 用接口装载表时, 也需要加上该特性
+- LuaCallCSharp
+  - 在使用拓展方法时
+  - 该特性建议每个被Lua调用的类都加, 可以提升性能
+
+**问题:**
+一些系统的类或者一些第三方库的代码都无法修改
+那么就不能手动为它们加上这个两个特性
+</br>
+
+**举个例子**
+我想通过Lua来访问UGUI中的Slider的On Value Change委托, 当数值发生改变时, 打印当前值
+```lua
+GameObject = CS.UnityEngine.GameObject
+UI = CS.UnityEngine.UI
+--得到slider的GameObject对象
+local slider = GameObject.Find("Slider")
+--得到挂载于slider的脚本
+local sliderScript = slider:GetComponent(typeof(UI.Slider))
+--为监听事件添加函数, 本质是一个 UnityAction<float>
+sliderScript.onValueChanged:AddListener(function(f)
+	print(f)
+end)
+```
+但是你一运行就会报错, 并明确让你添加一个CSharpCallLua的特性
+</br>
+
+**解决方案:**
+```CSharp
+//固定写法
+public static class AddProperty
+{
+    [CSharpCallLua]
+    public static List<Type> csharpCallLuaList = new List<Type>
+    {
+        (typeof(UnityAction<float>))
+    };
+
+    //上面代码就已经解决问题了, 这里只是举个LuaCallCSharp的例子
+    [LuaCallCSharp]
+    public static List<Type> luaCallCSharpList = new List<Type>
+    {
+        (typeof(GameObject))
+    };
+}
+```
+***
+## 3.11 协程
+C#中协程启动都是通过继承了Mono的类 通过里面的启动函数StartCoroutine
+如果想要在lua中开启CSharp的协程
+```lua
+GameObject = CS.UnityEngine.GameObject
+WaitForSeconds = CS.UnityEngine.WaitForSeconds
+
+--在场景中新建一个空物体  然后挂一个脚本上去 脚本继承mono使用它来开启协程
+local obj = GameObject("Coroutine")
+-- 这里的LuaCallCSharp是我unity默认创建的脚本
+local mono = obj:AddComponent(typeof(CS.LuaCallCSharp))
+
+func = function()
+	local a = 1
+	while true do
+		--lua中 不能直接使用 C#中的 yield return 
+		--就使用lua中的协程返回
+		--a自增并1s打印一次
+		coroutine.yield(WaitForSecond(1))
+		print(a)
+		a = a + 1
+	end
+end
+
+mono:StartCoroutine(func)
+```
+你会发现以上代码会报错, 其实也就意味着**不能直接将 lua函数传入到开启协程中**
+</br>
+
+**解决方案**
+```lua
+GameObject = CS.UnityEngine.GameObject
+WaitForSeconds = CS.UnityEngine.WaitForSeconds
+--xlua提供的一个工具表
+--一定是要通过require调用之后 才能用
+util = require("xlua.util")
+
+--中间啥也没改
+--...
+
+--必须 先调用 xlua.util中的cs_generator(lua函数)
+mono:StartCoroutine(util.cs_generator(func))
+```
+</br>
+
+**关闭协程**
+我增加了协程关闭的条件来举例, 其他代码一样
+```lua
+func = function()
+	--...
+
+        a = a + 1
+		if a > 10 then
+			mono:StopCoroutine(b)
+		end
+	end
+end
+
+b = mono:StartCoroutine(util.cs_generator(func))
+```
+***
+## 3.12 泛型
+测试类
+```CSharp
+public class Genericity
+{
+    public interface ITest { }
+    public class TestFather { }
+    public class TestChild : TestFather , ITest { }
+
+    public void TestFunc1<T>(T a, T b) where T : TestFather
+    {
+        Debug.Log("有参数有约束的泛型方法");
+    }
+
+    public void TestFunc2<T>(T a)
+    {
+        Debug.Log("有参数无约束的泛型方法");
+    }
+    
+    public void TestFunc3<T>() where T : TestFather
+    {
+        Debug.Log("无参数有约束的泛型方法");
+    }
+    
+    public void TestFunc4<T>() where T : ITest
+    {
+        Debug.Log("有参数有约束的泛型方法, 但是约束为接口");
+    }
+}
+```
+
+### 3.12.1 xlua的支持性
+能正常输出
+```lua
+local obj =  CS.Genericity()
+local child = CS.Genericity.TestChild()
+local father = CS.Genericity.TestFather()
+
+-- 支持 有参数有约束的泛型方法
+-- 能正常输出
+obj:TestFun1(child, father)
+obj:TestFun1(father, child)
+
+-- 以下都会报错
+-- 不支持 有参数无约束的泛型方法
+obj:TestFun2(child)
+
+-- 不支持 无参数有约束的泛型方法
+obj:TestFun3()
+
+-- 不支持 有参数有约束且为接口的泛型方法
+obj:TestFun4(child)
+```
+
+**解决方案**
+`xlua.get_generic_method(类, "函数名")`
+得到通用函数, 设置泛型类型再使用
+```lua
+-- 其他泛型套路一样
+local testFun2 = xlua.get_generic_method(CS.Genericity, "TestFunc2")
+local testFun2_R = testFun2(CS.System.Int32)
+--调用
+--成员方法  第一个参数 传调用函数的对象
+--静态方法 不用传
+testFun2_R(obj, 1)
+```
+**但是以上方法有一定限制**
+- Mono打包 这种方式支持使用
+- Il2cpp打包  
+  - 如果泛型参数是引用类型才可以使用
+  - 如果泛型参数是值类型，除非C#中已经调用过了 同类型的泛型参数 lua中才能够被使用
