@@ -1451,3 +1451,28 @@ testFun2_R(obj, 1)
 - Il2cpp打包  
   - 如果泛型参数是引用类型才可以使用
   - 如果泛型参数是值类型，除非C#中已经调用过了 同类型的泛型参数 lua中才能够被使用
+
+***
+# 四. 报错
+
+## 4.1 UnityEngine_LightWrap.cs
+[如果解决了你的问题, 记得去给作者点赞哦](https://blog.csdn.net/u014513152/article/details/106085418)
+
+>Assets\XLua\Gen\UnityEngine_LightWrap.cs(173,39): error CS1061: ‘Light’ does not contain a definition for ‘SetLightDirty’ and no accessible extension method ‘SetLightDirty’ accepting a first argument of type ‘Light’ could be found (are you missing a using directive or an assembly reference?)
+
+如果在打AB包时遇到该报错, 不是你的问题, 是xlua的问题
+
+**解决方案**
+找到Generator.cs脚本(直接在Project里搜)；在GetGenConfig 方法下添加以下内容(Ctrl+F直接搜)：
+```CSharp
+new List<string>(){"UnityEngine.Light", "shadowRadius"},
+new List<string>(){"UnityEngine.Light", "SetLightDirty"},
+new List<string>(){"UnityEngine.Light", "shadowAngle"},
+new List<string>(){"UnityEngine.Light", "shadowAngle"}
+```
+
+<center>
+
+![alt text](/Unity/图片/热更新/xlua/xlua11-15_17-44-28.jpg)
+
+</center>
