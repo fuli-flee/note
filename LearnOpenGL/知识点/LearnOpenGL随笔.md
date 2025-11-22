@@ -275,3 +275,83 @@ Uniform是另一种从我们的应用程序在 CPU 上传递数据到 GPU 上的
 注意:
 - 查询uniform地址不要求你之前使用过着色器程序，
 - 但是更新一个uniform之前你必须先使用程序(调用glUseProgram)，因为它是在当前激活的着色器程序中设置uniform的。
+***
+# 五. 纹理
+为了能够把纹理映射(Map)到三角形上，我们需要指定三角形的每个顶点各自对应纹理的哪个部分。这样每个顶点就会关联着一个**纹理坐标**(Texture Coordinate)
+
+
+纹理坐标在x和y轴上，范围为0到1之间（注意我们使用的是2D纹理图像）。使用纹理坐标获取纹理颜色叫做**采样**(Sampling)。纹理坐标起始于(0, 0)，也就是纹理图片的左下角，终止于(1, 1)，即纹理图片的右上角。下面的图片展示了我们是如何把纹理坐标映射到三角形上的。
+<center>
+
+![alt text](/LearnOpenGL/图片/LearnOpenGL11-22_10-22-18.jpg)
+
+</center>
+
+## 5.1 纹理环绕方式
+
+纹理坐标的范围通常是从(0, 0)到(1, 1)，那如果我们把纹理坐标设置在范围之外会发生什么？OpenGL默认的行为是重复这个纹理图像（我们基本上忽略浮点纹理坐标的整数部分），但OpenGL提供了更多的选择：
+
+
+|环绕方式	|描述|
+|:---:|---|
+|GL_REPEAT|	对纹理的默认行为。重复纹理图像。|
+|GL_MIRRORED_REPEAT	|和GL_REPEAT一样，但每次重复图片是镜像放置的。|
+|GL_CLAMP_TO_EDGE	|纹理坐标会被约束在0到1之间，超出的部分会重复纹理坐标的边缘，产生一种边缘被拉伸的效果。|
+|GL_CLAMP_TO_BORDER|	超出的坐标为用户指定的边缘颜色。|
+
+<center>
+
+![alt text](/LearnOpenGL/图片/LearnOpenGL11-22_10-26-42.jpg)
+
+</center>
+
+## 5.2 纹理过滤
+纹理坐标不依赖于分辨率(Resolution)，它可以是任意浮点值，所以OpenGL需要知道怎样将纹理像素(Texture Pixel，也叫Texel)映射到纹理坐标
+
+当你有一个很大的物体但是纹理的分辨率很低的时候, 就可以使用纹理过滤
+
+**其中重要的两个:GL_NEAREST和GL_LINEAR。**
+
+- GL_NEAREST（也叫邻近过滤，Nearest Neighbor Filtering）:
+<center>
+
+![alt text](/LearnOpenGL/图片/LearnOpenGL11-22_10-47-45.jpg)
+
+</center>
+
+- GL_LINEAR（也叫线性过滤，(Bi)linear Filtering）
+<center>
+
+![alt text](/LearnOpenGL/图片/LearnOpenGL11-22_10-48-02.jpg)
+
+</center>
+
+邻近过滤更加"棱角分明", 适合做8-bit风格
+线性过滤更加平滑, 可以得到更加真实的输出
+<center>
+
+![alt text](/LearnOpenGL/图片/LearnOpenGL11-22_10-51-42.jpg)
+
+</center>
+
+## 5.3 Mipmap
+多级渐远纹理, 它简单来说就是一系列的纹理图像，后一个纹理图像是前一个的二分之一。那么Mipmap对于内存的额外开销极限为1/3
+<center>
+
+![alt text](/LearnOpenGL/图片/LearnOpenGL11-22_10-58-17.jpg)
+
+</center>
+
+**Mipmap主要是使用在纹理被缩小的情况下的：纹理放大不会使用Mipmap**
+
+## 5.3 纹理单元
+
+一个纹理的位置值通常称为一个纹理单元(Texture Unit)。一个纹理的默认纹理单元是0，它是默认的激活纹理单元。
+
+纹理单元的主要目的是让我们在着色器中可以使用多于一个的纹理。通过把纹理单元赋值给采样器，我们可以一次绑定多个纹理，只要我们首先激活对应的纹理单元。
+
+
+OpenGL要求y轴`0.0`坐标是在图片的底部的，但是图片的y轴`0.0`坐标通常在顶部。所以正常输出的图片都是上下翻转的, 使用以下代码即可
+```glsl
+stbi_set_flip_vertically_on_load(true);
+```
