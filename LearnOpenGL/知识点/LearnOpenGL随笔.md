@@ -119,3 +119,159 @@ NDC 是 3D 渲染管线中介于裁剪空间和屏幕空间之间的中间坐标
 顶点着色器, 它会在GPU上创建内存用于储存我们的顶点数据，还要配置OpenGL如何解释这些内存，并且指定其如何发送给显卡。
 
 我们通过顶点缓冲对象(Vertex Buffer Objects, VBO)管理这个内存，它会在GPU内存（通常被称为显存）中储存大量顶点。使用这些缓冲对象的好处是我们可以一次性的发送一大批数据到显卡上，而不是每个顶点发送一次。
+
+显卡管理给定的数据的形式:
+- GL_STATIC_DRAW ：数据不会或几乎不会改变。
+- GL_DYNAMIC_DRAW：数据会被改变很多。
+- GL_STREAM_DRAW ：数据每次绘制时都会改变。
+
+## 3.3 绘制一个物体的基本流程
+现代OpenGL需要我们至少设置一个**顶点着色器**和一个**片段着色器**。
+当学完顶点输入, 顶点着色器, 编译着色器, 片元着色器, 链接顶点属性后
+就可得知绘制在屏幕上绘制一个顶点的基本流程为
+```cpp
+// 0. 复制顶点数组到缓冲中供OpenGL使用
+glBindBuffer(GL_ARRAY_BUFFER, VBO);
+glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+// 1. 设置顶点属性指针
+glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+glEnableVertexAttribArray(0);
+
+// 2. 当我们渲染一个物体时要使用着色器程序
+glUseProgram(shaderProgram);
+
+// 3. 绘制物体
+一些绘制物体的函数();
+```
+
+## 3.4 顶点数组对象
+OpenGL 中的一个 状态对象，作用是 “缓存” 顶点数据的 “解释规则” 和 VBO 的绑定关系，避免每次渲染都重复设置这些规则
+
+- 不存顶点数据本身，只存 “配置状态”；
+- 是现代 OpenGL 核心模式的 必需项（没有 VAO 无法渲染，早期固定管线不需要）；
+- 一个 VAO 可以对应一个或多个 VBO（比如一个 VBO 存坐标，另一个存颜色，VAO 记录这两个 VBO 的解析规则）。
+
+```cpp
+// 步骤1：创建 VBO 并传入顶点数据（CPU → GPU 显存）
+1. 生成 VBO 对象（glGenBuffers）；
+2. 绑定 VBO 到目标（glBindBuffer(GL_ARRAY_BUFFER, vbo)）；
+3. 把 CPU 中的顶点数据复制到 VBO（glBufferData）；
+   （此时 VBO 里有数据，但 OpenGL 不知道怎么解析）
+
+// 步骤2：创建 VAO 并记录解析规则
+1. 生成 VAO 对象（glGenVertexArrays）；
+2. 绑定 VAO（glBindVertexArray(vao)）—— 这一步是关键！
+   （绑定后，后续所有“顶点属性配置”都会被 VAO 记录）
+3. 绑定要使用的 VBO（如果之前没绑定）；
+4. 配置顶点属性指针（glVertexAttribPointer）：
+   - 告诉 OpenGL：“VBO 里第 N 个属性（比如坐标是属性0），
+     每个属性占几个分量（比如3个float对应x/y/z），
+     数据类型是什么（float），是否归一化，
+     每个顶点的总字节数（步长），
+     该属性在顶点数据中的偏移量（比如坐标从0字节开始，颜色从12字节开始）；
+5. 启用该顶点属性（glEnableVertexAttribArray）；
+6. （可选）解绑 VBO 和 VAO（不影响已记录的状态）；
+```
+
+**总结:**
+- **一个 VAO 可以关联多个 VBO**：比如 VBO1 存坐标，VBO2 存颜色，VAO 会记录 “哪个属性对应哪个 VBO” 以及各自的解析规则。
+- **VBO 可以被多个 VAO 共用**：比如多个模型用相同的顶点坐标（同一个 VBO），但颜色 / 纹理不同（不同解析规则），可以用多个 VAO 关联同一个 VBO；
+- VBO 负责 “把顶点数据搬到 GPU 存着”，VAO 负责 “记着怎么用这些数据”
+
+## 3.5 元素缓冲对象
+也叫索引缓冲对象(Index Buffer Object，IBO)
+EBO是一个缓冲区，就像一个顶点缓冲区对象一样，它存储 OpenGL 用来决定要绘制哪些顶点的索引。
+
+***
+# 四. 着色器
+着色器(Shader)是运行在GPU上的小程序。这些小程序为图形渲染管线的某个特定部分而运行。
+着色器是一种非常独立的程序，因为它们之间不能相互通信；它们之间唯一的沟通只有通过输入和输出。
+
+## 4.1 GLSL
+着色器是使用一种叫GLSL的类C语言写成的。GLSL是为图形计算量身定制的，它包含一些针对向量和矩阵操作的有用特性。
+
+一个典型的着色器有下面的结构：
+```glsl
+#version version_number
+in type in_variable_name;
+in type in_variable_name;
+
+out type out_variable_name;
+
+uniform type uniform_name;
+
+void main()
+{
+  // 处理输入并进行一些图形操作
+  ...
+  // 输出处理过的结果到输出变量
+  out_variable_name = weird_stuff_we_processed;
+}
+```
+
+### 4.1.1 数据类型
+特殊的, 向量(Vector)和矩阵(Matrix)
+
+**向量:**
+|类型	|含义|
+|---|---|
+|vecn	|包含n个float分量的默认向量|
+|bvecn|	包含n个bool分量的向量|
+|ivecn|	包含n个int分量的向量|
+|uvecn|	包含n个unsigned int分量的向量|
+|dvecn|	包含n个double分量的向量|
+
+**向量重组**
+一个向量的分量可以通过`vec.x`这种方式获取，这里x是指这个向量的第一个分量。你可以分别使用`.x`、`.y`、`.z`和`.w`来获取它们的第1、2、3、4个分量。GLSL也允许你对颜色使用`rgba`，或是对纹理坐标使用`stpq`访问相同的分量。
+```glsl
+vec2 someVec;
+vec4 differentVec = someVec.xyxx;
+vec3 anotherVec = differentVec.zyw;
+vec4 otherVec = someVec.xxxx + anotherVec.yxzy;
+```
+## 4.2 输入输出
+每个着色器之间只能通过输入输出进行交流
+GLSL定义了`in`和`out`关键字专门来实现这个目的。
+每个着色器使用这两个关键字设定输入和输出，只要一个输出变量与下一个着色器阶段的输入匹配，它就会传递下去。但在顶点和片段着色器中会有点不同。
+
+**顶点着色器**
+一个顶点可以包含多个信息: 位置, 颜色, 纹理坐标, 法线等
+而它们在内存上是连续的, 我们想要高效的读取相应信息就需要指定顶点属性位置 
+为了定义顶点数据该如何管理，我们使用location这一元数据指定输入变量，这样我们才可以在CPU上配置顶点属性。
+```glsl
+// 顶点着色器
+#version 330 core
+
+// 直接在GLSL中指定位置
+// location = ? 这个数字你可以随便定, 
+// 只要 “着色器里的 location” 和 “CPU 端配置” 一一对应，
+// 且每个属性用唯一数字就行。
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aColor;
+layout(location = 2) in vec2 aTexCoord;
+
+out vec3 ourColor;
+out vec2 TexCoord;
+
+void main()
+{
+    gl_Position = vec4(aPos, 1.0);
+    ourColor = aColor;
+    TexCoord = aTexCoord;
+}
+```
+
+## 4.3 Uniform
+Uniform是另一种从我们的应用程序在 CPU 上传递数据到 GPU 上的着色器的方式
+
+但uniform是全局的, 也就意味着
+- uniform变量必须在每个着色器程序对象中都是独一无二的，而且它可以被着色器程序的任意着色器在任意阶段访问 
+- 无论你把uniform值设置成什么，uniform会一直保存它们的数据，直到它们被重置或更新。
+
+> 如果你声明了一个uniform却在GLSL代码中没用过，编译器会静默移除这个变量，导致最后编译出的版本中并不会包含它，这可能导致一些非常麻烦的错误，
+
+
+注意:
+- 查询uniform地址不要求你之前使用过着色器程序，
+- 但是更新一个uniform之前你必须先使用程序(调用glUseProgram)，因为它是在当前激活的着色器程序中设置uniform的。
