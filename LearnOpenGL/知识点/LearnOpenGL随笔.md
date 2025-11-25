@@ -355,3 +355,191 @@ OpenGL要求y轴`0.0`坐标是在图片的底部的，但是图片的y轴`0.0`�
 ```glsl
 stbi_set_flip_vertically_on_load(true);
 ```
+
+***
+# 六. 变换
+
+## 6.1 向量
+
+### 6.1.1 点乘
+两个向量的点乘等于它们的数乘结果乘以两个向量之间夹角的余弦值。
+
+$$\bar{v}\cdot\bar{k}=||\bar{v}||\cdot||\bar{k}||\cdot\cos\theta$$
+
+所以要计算两个单位向量间的夹角，我们可以使用反余弦函数$cos^{-1}$
+
+
+### 6.1.2 叉乘
+叉乘只在3D空间中有定义，它需要两个不平行向量作为输入，生成一个正交于两个输入向量的第三个向量。
+
+$$\begin{pmatrix}
+A_x \\
+A_y \\
+A_z
+\end{pmatrix}\times
+\begin{pmatrix}
+B_x \\
+B_y \\
+B_z
+\end{pmatrix}=
+\begin{pmatrix}
+A_y\cdot B_z-A_z\cdot B_y \\
+A_z\cdot B_x-A_x\cdot B_z \\
+A_x\cdot B_y-A_y\cdot B_x
+\end{pmatrix}$$
+
+## 6.2 矩阵
+
+### 6.2.1 缩放
+$$\begin{bmatrix}S_1&0&0&0\\0&S_2&0&0\\0&0&S_3&0\\0&0&0&1\end{bmatrix}\cdot\begin{pmatrix}x\\y\\z\\1\end{pmatrix}=\begin{pmatrix}S_1\cdot x\\S_2\cdot y\\S_3\cdot z\\1\end{pmatrix}$$
+
+### 6.2.2 位移
+$$\begin{bmatrix}1&0&0&T_x\\0&1&0&T_y\\0&0&1&T_z\\0&0&0&1\end{bmatrix}\cdot\begin{pmatrix}x\\y\\z\\1\end{pmatrix}=\begin{pmatrix}x+T_x\\y+T_y\\z+T_z\\1\end{pmatrix}$$
+
+**齐次坐标(Homogeneous Coordinates)**
+
+向量的w分量也叫齐次坐标。想要从齐次向量得到3D向量，我们可以把x、y和z坐标分别除以w坐标。我们通常不会注意这个问题，因为w分量通常是1.0。使用齐次坐标有几点好处：它允许我们在3D向量上进行位移（如果没有w分量我们是不能位移向量的）
+
+如果一个向量的齐次坐标是0，这个坐标就是方向向量(Direction Vector)，因为w坐标是0，这个向量就不能位移（译注：这也就是我们说的不能位移一个方向）。
+
+### 6.2.3 旋转
+
+弧度转角度：`角度 = 弧度 * (180.0f / PI)`
+角度转弧度：`弧度 = 角度 * (PI / 180.0f)`
+
+1. 沿x轴旋转：
+$$\begin{bmatrix}1&0&0&0\\0&\cos\theta&-\sin\theta&0\\0&\sin\theta&\cos\theta&0\\0&0&0&1\end{bmatrix}\cdot\begin{pmatrix}x\\y\\z\\1\end{pmatrix}=\begin{pmatrix}x\\\cos\theta\cdot y-\sin\theta\cdot z\\\sin\theta\cdot y+\cos\theta\cdot z\\1\end{pmatrix}$$
+
+2. 沿y轴旋转：
+$$\begin{bmatrix}\cos\theta&0&\sin\theta&0\\0&1&0&0\\-\sin\theta&0&\cos\theta&0\\0&0&0&1\end{bmatrix}\cdot\begin{pmatrix}x\\y\\z\\1\end{pmatrix}=\begin{pmatrix}\cos\theta\cdot x+\sin\theta\cdot z\\y\\-\sin\theta\cdot x+\cos\theta\cdot z\\1\end{pmatrix}$$
+
+3. 沿z轴旋转：
+$$\begin{bmatrix}\cos\theta&-\sin\theta&0&0\\\sin\theta&\cos\theta&0&0\\0&0&1&0\\0&0&0&1\end{bmatrix}\cdot\begin{pmatrix}x\\y\\z\\1\end{pmatrix}=\begin{pmatrix}\cos\theta\cdot x-\sin\theta\cdot y\\\sin\theta\cdot x+\cos\theta\cdot y\\z\\1\end{pmatrix}$$
+
+这里会存在万向节死锁
+
+## 6.3 矩阵的组合
+当矩阵相乘时我们**先写位移再写缩放变换**的。矩阵乘法是不遵守交换律的，这意味着它们的顺序很重要。
+当矩阵相乘时，在最右边的矩阵是第一个与向量相乘的, 所以阅读矩阵相乘时的顺序是从右往左
+
+**例如:**
+$$Trans.Scale=\begin{bmatrix}1&0&0&1\\0&1&0&2\\0&0&1&3\\0&0&0&1\end{bmatrix}.\begin{bmatrix}2&0&0&0\\0&2&0&0\\0&0&2&0\\0&0&0&1\end{bmatrix}=\begin{bmatrix}2&0&0&1\\0&2&0&2\\0&0&2&3\\0&0&0&1\end{bmatrix}$$
+</br>
+
+向量先缩放2倍，然后位移了(1, 2, 3)个单位
+$$\begin{bmatrix}2&0&0&1\\0&2&0&2\\0&0&2&3\\0&0&0&1\end{bmatrix}.\begin{bmatrix}x\\y\\z\\1\end{bmatrix}=\begin{bmatrix}2x+1\\2y+2\\2z+3\\1\end{bmatrix}$$
+
+***
+# 七. 坐标系统
+比较重要的5个不同的坐标系统：
+
+- 局部空间(Local Space，或者称为物体空间(Object Space))
+- 世界空间(World Space)
+- 观察空间(View Space，或者称为视觉空间(Eye Space))
+- 裁剪空间(Clip Space)
+- 屏幕空间(Screen Space)
+
+为了将坐标从一个坐标系变换到另一个坐标系，我们需要用到几个变换矩阵，最重要的几个分别是 **模型(Model)、观察(View)、投影(Projection)** 三个矩阵。我们的顶点坐标起始于**局部空间(Local Space)**，在这里它称为**局部坐标(Local Coordinate)**，它在之后会变为**世界坐标(World Coordinate)**，**观察坐标(View Coordinate)**，**裁剪坐标(Clip Coordinate)**，并最后以**屏幕坐标(Screen Coordinate)**的形式结束。
+
+<center>
+
+![alt text](/LearnOpenGL/图片/LearnOpenGL11-24_18-54-12.jpg)
+
+</center>
+
+1. **局部坐标**是对象相对于局部原点的坐标，也是**物体起始的坐标**。
+2. 下一步是将局部坐标变换为世界空间坐标，**世界空间坐标**是处于一个更大的空间范围的。这些坐标相对于**世界的全局原点**，它们会和其它物体一起相对于世界的原点进行摆放。
+3. 接下来我们将世界坐标变换为**观察空间坐标**，使得每个坐标都是从摄像机或者说观察者的角度进行观察的。
+4. 坐标到达观察空间之后，我们需要将其投影到**裁剪坐标**。裁剪坐标会被处理至-1.0到1.0的范围内，并判断哪些顶点将会出现在屏幕上。
+5. 最后，我们将裁剪坐标变换为**屏幕坐标**，我们将使用一个叫做**视口变换**(Viewport Transform)的过程。视口变换将位于-1.0到1.0范围的坐标变换到由glViewport函数所定义的坐标范围内。最后变换出来的坐标将会送到光栅器，将其转化为片段。
+
+我们之所以将顶点变换到各个不同的空间的原因是有些操作在特定的坐标系统中才有意义且更方便。例如: 
+- 当需要对物体进行修改的时候，在局部空间中来操作会更说得通；
+- 如果要对一个物体做出一个相对于其它物体位置的操作时，在世界坐标系中来做这个才更说得通，等等。
+
+## 7.1 局部空间
+局部空间是指物体所在的坐标空间，即对象最开始所在的地方。
+
+## 7.2 世界空间
+世界空间中的坐标正如其名：是指顶点相对于（游戏）世界的坐标。如果你希望将物体分散在世界上摆放（特别是非常真实的那样），这就是你希望物体变换到的空间。物体的坐标将会从局部变换到世界空间；该变换是由 **模型矩阵(Model Matrix)** 实现的。模型矩阵是一种变换矩阵，它能通过对物体进行位移、缩放、旋转来将它置于它本应该在的位置或朝向。
+
+## 7.3 观察空间
+观察空间经常被人们称之OpenGL的**摄像机(Camera)**（所以有时也称为**摄像机空间(Camera Space)** 或视觉空间(Eye Space)）。观察空间是将世界空间坐标转化为用户视野前方的坐标而产生的结果。因此观察空间就是从摄像机的视角所观察到的空间。而这通常是由一系列的位移和旋转的组合来完成，平移/旋转场景从而使得特定的对象被变换到摄像机的前方。这些组合在一起的变换通常存储在一个**观察矩阵(View Matrix)** 里，它被用来将世界坐标变换到观察空间。
+
+## 7.4 裁剪空间
+在一个顶点着色器运行的最后，OpenGL期望所有的坐标都能落在一个特定的范围内，且任何在这个范围之外的点都应该被裁剪掉。被裁剪掉的坐标就会被忽略，所以剩下的坐标就将变为屏幕上可见的片段。这也就是**裁剪空间(Clip Space)**名字的由来。
+为了将顶点坐标从观察变换到裁剪空间，我们需要定义一个**投影矩阵(Projection Matrix)**，它指定了一个范围的坐标
+
+## 7.5 透视投影
+透视投影矩阵将给定的视锥体范围映射到裁剪空间，除此之外还修改了每个顶点坐标的w值，从而使得离观察者越远的顶点坐标w分量越大。被变换到裁剪空间的坐标都会在-w到w的范围之间（任何大于这个范围的坐标都会被裁剪掉）。OpenGL要求所有可见的坐标都落在-1.0到1.0范围内，作为顶点着色器最后的输出，因此，一旦坐标在裁剪空间内之后，透视除法就会被应用到裁剪空间坐标上：
+$$out=\begin{pmatrix}x/w\\y/w\\z/w\end{pmatrix}$$
+
+**透视投影的视锥体:**
+<center>
+
+![alt text](/LearnOpenGL/图片/LearnOpenGL11-25_11-10-04.jpg)
+
+</center>
+
+**名词解释**
+Fov: 视野
+aspect_ratio: 宽高比
+
+
+**注意:** 
+这里讲一个容易理解的错误的地方, 上图蓝色和绿色的fov是一样的, 用等比很容易证明
+
+## 7.6 MVP变换
+$$V_{clip}=M_{projection}\cdot M_{view}\cdot M_{model}\cdot V_{local}$$
+
+## 7.7 深度缓冲
+又称为**Z-buffer**
+GLFW会自动为你生成这样一个缓冲（就像它也有一个颜色缓冲来存储输出图像的颜色）。深度值存储在每个片段里面（作为片段的z值），当片段想要输出它的颜色时，OpenGL会将它的深度值和z缓冲进行比较，如果当前的片段在其它片段之后，它将会被丢弃，否则将会覆盖。这个过程称为**深度测试(Depth Testing)**，它是由OpenGL自动完成的。
+***
+# 八. 摄像机
+当我们讨论摄像机/观察空间(Camera/View Space)的时候，是在讨论以摄像机的视角作为场景原点时场景中所有的顶点坐标：观察矩阵把所有的世界坐标变换为相对于摄像机位置与方向的观察坐标。要定义一个摄像机，我们需要它在世界空间中的**位置**、**观察的方向**、一个指向它**右侧的向量**以及一个指向它**上方的向量**。
+
+
+**格拉姆—施密特正交化(Gram-Schmidt Process)**
+<center>
+
+![alt text](/LearnOpenGL/图片/LearnOpenGL11-25_15-15-00.jpg)
+
+</center>
+
+## 8.1 LookAt
+如果你使用3个相互垂直（或非线性）的轴定义了一个坐标空间，你可以用这3个轴外加一个平移向量来创建一个矩阵，并且你可以用这个矩阵乘以任何向量来将其变换到那个坐标空间。这正是LookAt矩阵所做的，现在我们有了3个相互垂直的轴和一个定义摄像机空间的位置坐标，我们可以创建我们自己的LookAt矩阵了：
+
+$$LookAt=\begin{bmatrix}R_x&R_y&R_z&0\\U_x&U_y&U_z&0\\D_x&D_y&D_z&0\\0&0&0&1\end{bmatrix}*\begin{bmatrix}1&0&0&-P_x\\0&1&0&-P_y\\0&0&1&-P_z\\0&0&0&1\end{bmatrix}$$
+
+其中**R是右向量**，**U是上向量**，**D是方向向量**, **P是摄像机位置向量**。注意，位置向量是相反的，因为我们最终希望把世界平移到与我们自身移动的相反方向。把这个LookAt矩阵作为观察矩阵可以很高效地把所有世界坐标变换到刚刚定义的观察空间。
+
+## 8.2 Deltatime
+目前我们的移动速度是个常量。理论上没什么问题，但是实际情况下根据处理器的能力不同，有些人可能会比其他人每秒绘制更多帧, 结果就是，根据配置的不同，有些人可能移动很快，而有些人会移动很慢。当你发布你的程序的时候，你必须确保它在所有硬件上移动速度都一样。
+
+图形程序和游戏通常会跟踪一个**时间差(Deltatime)**变量，它储存了渲染上一帧所用的时间。我们把所有速度都去乘以deltaTime值。结果就是，如果我们的deltaTime很大，就意味着上一帧的渲染花费了更多时间，所以这一帧的速度需要变得更高来平衡渲染所花去的时间。使用这种方法时，无论你的电脑快还是慢，摄像机的速度都会相应平衡，这样每个用户的体验就都一样了。
+
+## 8.3 欧拉角
+欧拉角(Euler Angle)是可以表示3D空间中任何旋转的3个值，一共有3种欧拉角：
+- 俯仰角(Pitch)
+- 偏航角(Yaw)
+- 滚转角(Roll)
+<center>
+
+![alt text](/LearnOpenGL/图片/LearnOpenGL11-25_16-33-21.jpg)
+
+</center>
+
+**俯仰角:**
+<center>
+
+![alt text](/LearnOpenGL/图片/LearnOpenGL11-25_16-40-21.jpg)
+
+</center>
+
+**偏航角:**
+<center>
+
+![alt text](/LearnOpenGL/图片/LearnOpenGL11-25_16-40-40.jpg)
+
+</center>
